@@ -1,0 +1,63 @@
+body {
+  font-size: 16px;
+  text-align: center;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Open Sans", sans-serif;
+}
+
+p {
+  text-align: center;
+  margin: 20px 0 60px;
+  font-size: 1.25rem;
+  &.success {
+    color: #73af55;
+  }
+  &.error {
+    color: #d06079;
+  }
+}
+
+ul {
+  list-style-type: none;
+}
+
+.input-footer {
+  margin: 1.25rem 0;
+}
+.field-group {
+  margin: 0 0 1.25rem 0;
+}
+
+label,
+input {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+}
+input {
+  border: 0.125rem solid #ccc;
+  border-radius: 0.25rem;
+  &[visited] {
+    border-color: orange;
+  }
+  &[pristine] {
+    border-color: cyan;
+  }
+}
+
+button {
+  font-family: "Open Sans", sans-serif;
+  font-size: 1.25rem;
+  padding: 0.25rem;
+  background: none;
+  border: 1x solid #ccc;
+}
+
+.submitting-indicator {
+  border: 0.125rem solid blue;
+  border-radius: 0.25rem;
+  padding: 2rem;
+}

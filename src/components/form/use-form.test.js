@@ -242,6 +242,29 @@ describe("useForm input validation tests", () => {
     });
   });
 
+  it("onBlur only validation should not be evaluated on form submit", async () => {
+    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const onSubmit = jest.fn();
+    expect(result.current.api).toBeDefined();
+    renderHook(() =>
+      result.current.api.addInput({
+        name: "test",
+        value: "abc",
+        validators: [{ ...required, when: ["onBlur"] }]
+      })
+    );
+    renderHook(async () => {
+      await result.current
+        .getFormProps({ onSubmit })
+        .onSubmit({ preventDefault: noop });
+    });
+    jest.runAllTimers();
+    await waitForNextUpdate();
+    expect(result.current.formValidity).toEqual({
+      test: { field: "test", valid: true }
+    });
+  });
+
   it("should be able to determine validations that are undetermined", async () => {
     const { result, waitForNextUpdate } = renderHook(() => useForm());
     const onSubmit = jest.fn();

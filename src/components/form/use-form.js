@@ -13,6 +13,7 @@ export const useForm = (name, initialState = {}) => {
   const [formValidity, setFormValidity] = useState({});
   const [validators] = useState({});
   const [uiState, setUiState] = useState({
+    isValidating: false,
     isValid: true,
     isSubmitting: false
   });
@@ -20,6 +21,8 @@ export const useForm = (name, initialState = {}) => {
 
   const validateAll = async () => {
     const promises = [];
+    let newUiState = { ...uiState };
+
     Object.keys(validators).forEach(async field => {
       promises.push(
         runValidators({
@@ -30,20 +33,19 @@ export const useForm = (name, initialState = {}) => {
         })
       );
     });
+
+    newUiState = {
+      ...newUiState,
+      isValidating: true
+    };
+    setUiState(newUiState);
+
     const results = await Promise.all(promises);
     results.forEach(result => {
       formValidity[result.field] = result;
     });
 
-    // Object.keys(validators).forEach(async field => {
-    //   const validationResults = await runValidators({
-    //     field,
-    //     validators: validators[field],
-    //     eventType: "onBlur",
-    //     value: inputs[field].value
-    //   });
-    //   formValidity[field] = validationResults;
-    // });
+    setUiState({ ...newUiState, isValidating: false });
   };
 
   const getFormProps = (props = {}) => ({
@@ -67,7 +69,8 @@ export const useForm = (name, initialState = {}) => {
         if (props.onSubmit) {
           await props.onSubmit({ evt, formValues });
         }
-      } finally {
+        setUiState({ ...newUiState, isSubmitting: false });
+      } catch {
         setUiState({ ...newUiState, isSubmitting: false });
       }
     }

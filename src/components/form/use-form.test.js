@@ -11,17 +11,22 @@ describe("useForm hook tests", () => {
 
   it("should return empty form props and form state", () => {
     const { result } = renderHook(() => useForm());
-    const { getFormProps, formValues } = result.current;
+    const { getFormProps, formValues, api } = result.current;
+
     expect(getFormProps).toBeDefined();
+    expect(getFormProps().onSubmit).toBeDefined();
     expect(formValues).toEqual({});
+    expect(api).toBeDefined();
   });
 
   it("should return an initial uiState", () => {
     const { result } = renderHook(() => useForm());
     const { uiState } = result.current;
+
     expect(uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
   });
 
@@ -29,6 +34,7 @@ describe("useForm hook tests", () => {
     const { result } = renderHook(() => useForm());
     const { getFormProps } = result.current;
     const formProps = getFormProps({ foo: "bar" });
+
     expect(formProps.foo).toEqual("bar");
   });
 
@@ -36,23 +42,25 @@ describe("useForm hook tests", () => {
     const { waitForNextUpdate, result } = renderHook(() => useForm());
     const onSubmit = jest.fn(() => new Promise(r => setTimeout(() => r(), 1)));
     const formProps = result.current.getFormProps({ onSubmit });
+
     expect(formProps.onSubmit).toBeDefined();
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(async () => {
-      await formProps.onSubmit({ preventDefault: noop });
-    });
+    // act(async () => {
+    renderHook(async () => await formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
     jest.runAllTimers();
     await waitForNextUpdate();
     expect(onSubmit).toHaveBeenCalled();
     expect(result.current.uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
   });
 
@@ -68,7 +76,6 @@ describe("useForm hook tests", () => {
       });
 
     const formProps = getFormProps({ onSubmit });
-    expect(formProps.onSubmit).toBeDefined();
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
@@ -78,24 +85,23 @@ describe("useForm hook tests", () => {
     await waitForNextUpdate();
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
     jest.runAllTimers();
     await waitForNextUpdate();
     expect(uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
   });
 
   it("should gracefully handle onSubmit errors", async () => {
     const { result } = renderHook(() => useForm());
     const { getFormProps, uiState } = result.current;
-
     const onSubmit = evt => new Error();
-
     const formProps = getFormProps({ onSubmit });
-    expect(formProps.onSubmit).toBeDefined();
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
@@ -104,23 +110,20 @@ describe("useForm hook tests", () => {
     });
     expect(uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
   });
 
   it("should gracefully handle async onSubmit errors", async () => {
     const { waitForNextUpdate, result } = renderHook(() => useForm());
-    const { getFormProps, uiState } = result.current;
-
     const onSubmit = evt =>
       new Promise((resolve, reject) => {
         setTimeout(() => {
           reject();
         }, 1);
       });
-
-    const formProps = getFormProps({ onSubmit });
-    expect(formProps.onSubmit).toBeDefined();
+    const formProps = result.current.getFormProps({ onSubmit });
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
@@ -128,52 +131,74 @@ describe("useForm hook tests", () => {
       formProps.onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
+
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
     jest.runAllTimers();
     await waitForNextUpdate();
     expect(result.current.uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
   });
 });
 
 describe("useForm input tests", () => {
   afterEach(cleanup);
+
   it("should be able to add inputs", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
-    expect(api).toBeDefined();
 
     renderHook(() => api.addInput({ name: "test", value: "123" }));
     expect(result.current.formValues).toEqual({ test: "123" });
     expect(result.current.inputs.test).toBeDefined();
-    let inputProps = result.current.inputs.test.getInputProps();
+  });
+
+  it("should be able to add input and get props", () => {
+    const { result } = renderHook(() => useForm());
+    const { api } = result.current;
+
+    renderHook(() => api.addInput({ name: "test", value: "123" }));
+    const inputProps = result.current.inputs.test.getInputProps();
+
     expect(inputProps.id).toEqual("test");
     expect(inputProps.value).toEqual("123");
+  });
 
+  it("should be able to add multiple inputs", () => {
+    const { result } = renderHook(() => useForm());
+    const { api } = result.current;
+
+    renderHook(() => api.addInput({ name: "test", value: "123" }));
     renderHook(() => api.addInput({ name: "secondtest", value: "234" }));
+
     expect(result.current.formValues).toEqual({
-      test: "123",
-      secondtest: "234"
+      secondtest: "234",
+      test: "123"
     });
-    expect(result.current.inputs.test).toBeDefined();
-    inputProps = result.current.inputs.secondtest.getInputProps();
-    expect(inputProps.id).toEqual("secondtest");
-    expect(inputProps.value).toEqual("234");
   });
 });
 
 describe("useForm input validation tests", () => {
   afterEach(cleanup);
 
+  it("should iitialize validation state for inputs to valid regardless  of initial value", () => {
+    const { result } = renderHook(() => useForm());
+    const { api } = result.current;
+
+    renderHook(() => api.addInput({ name: "test", value: "123" }));
+
+    expect(result.current.formValidity).toEqual({});
+  });
+
   it("should be able to add inputs with invalid values and submit", async () => {
     const { result, waitForNextUpdate } = renderHook(() => useForm());
-    const onSubmit = jest.fn();
-    expect(result.current.api).toBeDefined();
+
     renderHook(() =>
       result.current.api.addInput({
         name: "test",
@@ -189,27 +214,26 @@ describe("useForm input validation tests", () => {
       })
     );
     renderHook(async () => {
-      await result.current
-        .getFormProps({ onSubmit })
-        .onSubmit({ preventDefault: noop });
+      await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
+    await waitForNextUpdate();
     jest.runAllTimers();
     await waitForNextUpdate();
+
     expect(result.current.uiState).toEqual({
       isSubmitting: false,
-      isValid: false
+      isValid: false,
+      isValidating: false
     });
-    expect(onSubmit).toHaveBeenCalled();
     expect(result.current.formValidity).toEqual({
       last: { errors: ["REQUIRED"], field: "last", valid: false },
       test: { errors: ["REQUIRED"], field: "test", valid: false }
     });
   });
 
-  it("should be able to add inputs with invalid values and submit", async () => {
+  it("should be able to add inputs with valid values and submit", async () => {
     const { result, waitForNextUpdate } = renderHook(() => useForm());
-    const onSubmit = jest.fn();
-    expect(result.current.api).toBeDefined();
+
     renderHook(() =>
       result.current.api.addInput({
         name: "test",
@@ -225,27 +249,26 @@ describe("useForm input validation tests", () => {
       })
     );
     renderHook(async () => {
-      await result.current
-        .getFormProps({ onSubmit })
-        .onSubmit({ preventDefault: noop });
+      await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
+    await waitForNextUpdate();
     jest.runAllTimers();
     await waitForNextUpdate();
+
     expect(result.current.uiState).toEqual({
       isSubmitting: false,
-      isValid: true
+      isValid: true,
+      isValidating: false
     });
-    expect(onSubmit).toHaveBeenCalled();
     expect(result.current.formValidity).toEqual({
       email: { field: "email", valid: true },
       test: { field: "test", valid: true }
     });
   });
 
-  it("onBlur only validation should not be evaluated on form submit", async () => {
+  it("Should only validate onSubmit validations on form submit, ignoring others such as onBlur", async () => {
     const { result, waitForNextUpdate } = renderHook(() => useForm());
-    const onSubmit = jest.fn();
-    expect(result.current.api).toBeDefined();
+
     renderHook(() =>
       result.current.api.addInput({
         name: "test",
@@ -254,12 +277,16 @@ describe("useForm input validation tests", () => {
       })
     );
     renderHook(async () => {
-      await result.current
-        .getFormProps({ onSubmit })
-        .onSubmit({ preventDefault: noop });
+      await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     jest.runAllTimers();
     await waitForNextUpdate();
+
+    expect(result.current.uiState).toEqual({
+      isSubmitting: false,
+      isValid: true,
+      isValidating: false
+    });
     expect(result.current.formValidity).toEqual({
       test: { field: "test", valid: true }
     });
@@ -267,7 +294,7 @@ describe("useForm input validation tests", () => {
 
   it("should be able to determine validations that are undetermined", async () => {
     const { result, waitForNextUpdate } = renderHook(() => useForm());
-    const onSubmit = jest.fn();
+
     const customValidator = createValidator({
       validateFn: async text =>
         await new Promise(resolve => {
@@ -276,7 +303,6 @@ describe("useForm input validation tests", () => {
       error: "CUSTOM_ASYNC_ERROR"
     });
 
-    expect(result.current.api).toBeDefined();
     renderHook(() =>
       result.current.api.addInput({
         name: "test",
@@ -292,13 +318,16 @@ describe("useForm input validation tests", () => {
       })
     );
     renderHook(async () => {
-      await result.current
-        .getFormProps({ onSubmit })
-        .onSubmit({ preventDefault: noop });
+      await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     jest.runAllTimers();
     await waitForNextUpdate();
 
+    expect(result.current.uiState).toEqual({
+      isSubmitting: false,
+      isValid: true,
+      isValidating: false
+    });
     expect(result.current.formValidity).toEqual({
       email: {
         field: "email",

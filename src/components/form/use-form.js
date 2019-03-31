@@ -48,32 +48,34 @@ export const useForm = (name, initialState = {}) => {
     setUiState({ ...newUiState, isValidating: false });
   };
 
+  const onSubmit = async (evt, props) => {
+    evt.preventDefault();
+    let newUiState = { ...uiState };
+    try {
+      await validateAll();
+      const isFormValid = !Object.keys(formValidity).some(
+        field => !formValidity[field].valid
+      );
+
+      newUiState = {
+        ...newUiState,
+        isSubmitting: true,
+        isValid: isFormValid
+      };
+      setUiState(newUiState);
+      if (props.onSubmit) {
+        await props.onSubmit({ evt, formValues });
+      }
+      setUiState({ ...newUiState, isSubmitting: false });
+    } catch {
+      setUiState({ ...newUiState, isSubmitting: false });
+    }
+  };
+
   const getFormProps = (props = {}) => ({
     ...defaultFormProps,
     ...props,
-    onSubmit: async evt => {
-      evt.preventDefault();
-      let newUiState = { ...uiState };
-      try {
-        await validateAll();
-        const isFormValid = !Object.keys(formValidity).some(
-          field => !formValidity[field].valid
-        );
-
-        newUiState = {
-          ...newUiState,
-          isSubmitting: true,
-          isValid: isFormValid
-        };
-        setUiState(newUiState);
-        if (props.onSubmit) {
-          await props.onSubmit({ evt, formValues });
-        }
-        setUiState({ ...newUiState, isSubmitting: false });
-      } catch {
-        setUiState({ ...newUiState, isSubmitting: false });
-      }
-    }
+    onSubmit: evt => onSubmit(evt, props)
   });
 
   const onInputChange = (name, value) => {

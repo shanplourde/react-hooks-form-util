@@ -1,6 +1,10 @@
 import React from "react";
 import { useForm } from "../../components/form/use-form";
-import { required, email } from "../../components/form/validators";
+import {
+  required,
+  email,
+  createValidator
+} from "../../components/form/validators";
 import { sleep } from "../../utils/async";
 
 function SampleForm(props) {
@@ -9,7 +13,8 @@ function SampleForm(props) {
     {
       firstName: "George",
       lastName: "OfTheJungle",
-      email: "george@thejungle.com"
+      email: "george@thejungle.com",
+      custom: "custom"
     }
   );
   const firstNameInput = api.addInput({
@@ -33,12 +38,28 @@ function SampleForm(props) {
       }
     ]
   });
+  const customValidator = createValidator({
+    validateFn: async text =>
+      await new Promise(resolve => {
+        setTimeout(() => {
+          resolve((text || "").length > 8);
+        }, 5000);
+      }),
+    error: "CUSTOM_ASYNC_ERROR"
+  });
+
+  const customInput = api.addInput({
+    name: "custom",
+    value: formValues.custom,
+    validators: [{ ...customValidator, when: ["onBlur", "onSubmit"] }]
+  });
 
   const onSubmit = async ({ evt, formValues }) => {
     await sleep(5000);
     console.log("sample-form onSubmit, formValues", formValues);
   };
 
+  console.log("formValidity", formValidity);
   return (
     <div>
       <h2>Kitchen sink sample</h2>
@@ -75,6 +96,16 @@ function SampleForm(props) {
           </label>
           <input type="text" {...emailInput.getInputProps()} />
         </div>
+
+        <div className="field-group">
+          <label htmlFor={customInput.id}>
+            Custom validation (5 seconds to complete){" "}
+            {JSON.stringify(customInput.uiState)} --{" "}
+            {JSON.stringify(formValidity.custom)}*
+          </label>
+          <input type="text" {...customInput.getInputProps()} />
+        </div>
+
         <div>* - Indicates required field</div>
 
         <div className="input-footer">

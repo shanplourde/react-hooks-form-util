@@ -40,7 +40,7 @@ describe("useForm hook tests", () => {
 
   it("should support custom onSubmit", async () => {
     const { waitForNextUpdate, result } = renderHook(() => useForm());
-    const onSubmit = jest.fn(() => new Promise(r => setTimeout(() => r(), 1)));
+    const onSubmit = jest.fn();
     const formProps = result.current.getFormProps({ onSubmit });
 
     expect(formProps.onSubmit).toBeDefined();
@@ -49,11 +49,6 @@ describe("useForm hook tests", () => {
     // act(async () => {
     renderHook(async () => await formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
-    expect(result.current.uiState).toEqual({
-      isSubmitting: true,
-      isValid: true,
-      isValidating: false
-    });
     jest.runAllTimers();
     await waitForNextUpdate();
     expect(onSubmit).toHaveBeenCalled();
@@ -194,6 +189,78 @@ describe("useForm input validation tests", () => {
     renderHook(() => api.addInput({ name: "test", value: "123" }));
 
     expect(result.current.formValidity).toEqual({});
+  });
+
+  it("should be able to add an input with valid asynchronous validation and get correct formValidity input state", async () => {
+    const customValidator = createValidator({
+      validateFn: async text =>
+        await new Promise(resolve => {
+          setTimeout(() => resolve(true), 1);
+        }),
+      error: "CUSTOM_ASYNC_ERROR"
+    });
+
+    const { result, waitForNextUpdate } = renderHook(() => useForm());
+
+    renderHook(() =>
+      result.current.api.addInput({
+        name: "test",
+        value: "",
+        validators: [{ ...customValidator, when: ["onBlur"] }]
+      })
+    );
+    await result.current.inputs.test.getInputProps().onBlur({
+      preventDefault: noop,
+      target: {
+        value: ""
+      }
+    });
+    expect(result.current.formValidity).toEqual({
+      test: { isValidating: true, value: "" }
+    });
+
+    jest.runAllTimers();
+    await waitForNextUpdate();
+
+    expect(result.current.formValidity).toEqual({
+      test: { field: "test", valid: true }
+    });
+  });
+
+  it("should be able to add an input with invalid asynchronous validation and get correct formValidity input state", async () => {
+    const customValidator = createValidator({
+      validateFn: async text =>
+        await new Promise(resolve => {
+          setTimeout(() => resolve(false), 1);
+        }),
+      error: "CUSTOM_ASYNC_ERROR"
+    });
+
+    const { result, waitForNextUpdate } = renderHook(() => useForm());
+
+    renderHook(() =>
+      result.current.api.addInput({
+        name: "test",
+        value: "",
+        validators: [{ ...customValidator, when: ["onBlur"] }]
+      })
+    );
+    await result.current.inputs.test.getInputProps().onBlur({
+      preventDefault: noop,
+      target: {
+        value: ""
+      }
+    });
+    expect(result.current.formValidity).toEqual({
+      test: { isValidating: true, value: "" }
+    });
+
+    jest.runAllTimers();
+    await waitForNextUpdate();
+
+    expect(result.current.formValidity).toEqual({
+      test: { errors: ["CUSTOM_ASYNC_ERROR"], field: "test", valid: false }
+    });
   });
 
   it("should be able to add inputs with invalid values and submit", async () => {

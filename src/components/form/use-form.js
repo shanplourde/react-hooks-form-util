@@ -84,6 +84,18 @@ export const useForm = (name, initialState = {}) => {
 
   const onInputBlur = async (name, value) => {
     if (validators[name]) {
+      if (
+        formValidity[name] &&
+        formValidity[name].isValidating &&
+        formValidity[name].value === value
+      ) {
+        // No need to do anything at this point since validator is already running
+        return;
+      }
+      setFormValidity({
+        ...formValidity,
+        [name]: { ...formValidity[name], isValidating: true, value }
+      });
       const validationResults = await runValidators({
         field: name,
         validators: validators[name],

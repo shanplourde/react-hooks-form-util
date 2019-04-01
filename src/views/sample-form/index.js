@@ -59,7 +59,9 @@ function SampleForm(props) {
     console.log("sample-form onSubmit, formValues", formValues);
   };
 
-  console.log("formValidity", formValidity);
+  console.log("formValidity", JSON.stringify(formValidity));
+  console.log("uiState", JSON.stringify(uiState));
+
   return (
     <div>
       <h2>Kitchen sink sample</h2>

@@ -182,7 +182,7 @@ describe("useForm input tests", () => {
 describe("useForm input validation tests", () => {
   afterEach(cleanup);
 
-  it("should iitialize validation state for inputs to valid regardless  of initial value", () => {
+  it("should initialize validation state for inputs to valid regardless  of initial value", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
 

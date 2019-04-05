@@ -28,7 +28,7 @@ See [my multi-part article series for background](https://medium.com/@shanplourd
 
 ## Demo
 
-See [complete demo of all features](https://codesandbox.io/s/9lr6r8z8yw).
+See [complete demo of all features](https://codesandbox.io/s/github/shanplourde/react-hooks-form-util).
 
 # Getting started
 

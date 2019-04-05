@@ -1,4 +1,6 @@
-import { createValidator, email, required, runValidators } from "./validators";
+import { createValidator, validators, runValidators } from "./validators";
+
+const { email, required, mustBeTrue } = validators;
 
 describe("Email validator tests", () => {
   const testCases = [
@@ -91,6 +93,59 @@ describe("Required validator tests", () => {
   testCases.forEach(testCase => {
     it(`Should pass for case ${testCase.input}`, async () => {
       const result = await required.validate(testCase.input);
+      expect(result).toEqual(testCase.expectedValue);
+    });
+  });
+});
+
+describe("mustBeTrue validator tests", () => {
+  const testCases = [
+    {
+      input: "",
+      expectedValue: {
+        error: "MUST_BE_TRUE",
+        valid: false
+      }
+    },
+    {
+      input: null,
+      expectedValue: {
+        error: "MUST_BE_TRUE",
+        valid: false
+      }
+    },
+    {
+      input: undefined,
+      expectedValue: {
+        error: "MUST_BE_TRUE",
+        valid: false
+      }
+    },
+    {
+      input: "true",
+      expectedValue: {
+        error: "MUST_BE_TRUE",
+        valid: false
+      }
+    },
+    {
+      input: true,
+      expectedValue: {
+        valid: true
+      }
+    },
+    {
+      input: false,
+      expectedValue: {
+        error: "MUST_BE_TRUE",
+        valid: false
+      }
+    }
+  ];
+
+  testCases.forEach(testCase => {
+    it(`Should pass for case ${testCase.input}`, async () => {
+      const result = await mustBeTrue.validate(testCase.input);
       // result.ariaProps = result.ariaProps.sort();
       // testCase.expectedValue.ariaProps = testCase.expectedValue.ariaProps.sort();
       expect(result).toEqual(testCase.expectedValue);
@@ -273,16 +328,18 @@ describe("runValidators tests", () => {
       }
     ];
     const validationResults = await runValidators({
+      field: "test",
       validators,
       eventType: "onBlur",
       value: ""
     });
     expect(validationResults).toEqual({
-      valid: false,
-      errors: ["REQUIRED", "CUSTOM_ERROR"]
+      errors: ["REQUIRED"],
+      field: "test",
+      valid: false
     });
   });
-  it("Returns validations that raise errors as undetermined rather than valid or invalid", async () => {
+  it("Continues handling multiple-undetermined validations without stopping at the first one", async () => {
     const customValidator = createValidator({
       validateFn: text => {
         throw new Error("oh no");
@@ -307,13 +364,15 @@ describe("runValidators tests", () => {
       }
     ];
     const validationResults = await runValidators({
+      field: "test",
       validators,
       eventType: "onBlur",
       value: "a"
     });
     expect(validationResults).toEqual({
-      valid: true,
-      undeterminedValidations: ["CUSTOM_ASYNC_ERROR", "CUSTOM_ASYNC_ERROR_2"]
+      field: "test",
+      undeterminedValidations: ["CUSTOM_ASYNC_ERROR", "CUSTOM_ASYNC_ERROR_2"],
+      valid: true
     });
   });
 });

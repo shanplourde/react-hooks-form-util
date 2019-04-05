@@ -8,15 +8,20 @@ export const runValidators = async ({
   eventType,
   value
 }) => {
-  const valPromises = [];
-  validators
-    .filter(validator => {
-      return validator.when.some(whenItem => whenItem === eventType);
-    })
-    .forEach(async validator => {
-      valPromises.push(validator.validate(value));
-    });
-  const validationResults = await Promise.all(valPromises);
+  const validationResults = [];
+  let isValid = true;
+  const filteredValidators = validators.filter(validator => {
+    return validator.when.some(whenItem => whenItem === eventType);
+  });
+  for (let i = 0; i < filteredValidators.length; i++) {
+    const validator = filteredValidators[i];
+    if (isValid) {
+      const validationResult = await validator.validate(value);
+      if (!validationResult.valid && !validationResult.undeterminedValidation)
+        isValid = false;
+      validationResults.push(validationResult); // validator.validate(value));
+    }
+  }
   const validationErrors = validationResults.filter(
     result => !result.valid && !result.undeterminedValidation
   );
@@ -67,21 +72,36 @@ export const createValidator = ({ validateFn, error = "ERROR_KEY" }) => {
   };
 };
 
+const validators = {};
 /**
  * A required field validator that fires on blur and submit
  */
-export const required = createValidator({
-  validateFn: text => (text || "").length > 0,
+validators.required = createValidator({
+  validateFn: value =>
+    (value !== null &&
+      value !== undefined &&
+      (typeof value === "object" && value.length === undefined)) ||
+    (value || "").length > 0,
   error: "REQUIRED"
+});
+
+/**
+ * Useful for checkboxes that must be checked
+ */
+validators.mustBeTrue = createValidator({
+  validateFn: value => value !== null && value !== undefined && value === true,
+  error: "MUST_BE_TRUE"
 });
 
 /**
  * An email validator that fires on blur and submit
  */
-export const email = createValidator({
+validators.email = createValidator({
   validateFn: text => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return !text || re.test(String(text).toLowerCase());
   },
   error: "INVALID_EMAIL"
 });
+
+export { validators };

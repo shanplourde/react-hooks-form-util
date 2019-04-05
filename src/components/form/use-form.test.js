@@ -1,7 +1,8 @@
 import { renderHook, cleanup, act } from "react-hooks-testing-library";
 import { useForm } from "./use-form";
-import { required, email, createValidator } from "./validators";
+import { validators, createValidator } from "./validators";
 
+const { required, email } = validators;
 const noop = () => {};
 
 jest.useFakeTimers();
@@ -149,7 +150,7 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
 
-    renderHook(() => api.addInput({ name: "test", value: "123" }));
+    renderHook(() => api.addInput({ id: "test", value: "123" }));
     expect(result.current.formValues).toEqual({ test: "123" });
     expect(result.current.inputs.test).toBeDefined();
   });
@@ -158,7 +159,7 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
 
-    renderHook(() => api.addInput({ name: "test", value: "123" }));
+    renderHook(() => api.addInput({ id: "test", value: "123" }));
     const inputProps = result.current.inputs.test.getInputProps();
 
     expect(inputProps.id).toEqual("test");
@@ -169,8 +170,8 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
 
-    renderHook(() => api.addInput({ name: "test", value: "123" }));
-    renderHook(() => api.addInput({ name: "secondtest", value: "234" }));
+    renderHook(() => api.addInput({ id: "test", value: "123" }));
+    renderHook(() => api.addInput({ id: "secondtest", value: "234" }));
 
     expect(result.current.formValues).toEqual({
       secondtest: "234",
@@ -186,7 +187,7 @@ describe("useForm input validation tests", () => {
     const { result } = renderHook(() => useForm());
     const { api } = result.current;
 
-    renderHook(() => api.addInput({ name: "test", value: "123" }));
+    renderHook(() => api.addInput({ id: "test", value: "123" }));
 
     expect(result.current.formValidity).toEqual({});
   });
@@ -204,7 +205,7 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "",
         validators: [{ ...customValidator, when: ["onBlur"] }]
       })
@@ -240,7 +241,7 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "",
         validators: [{ ...customValidator, when: ["onBlur"] }]
       })
@@ -268,14 +269,14 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "",
         validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
-        name: "last",
+        id: "last",
         value: "",
         validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
       })
@@ -303,14 +304,14 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "abc",
         validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
-        name: "email",
+        id: "email",
         value: "george@ofthejungle.com",
         validators: [{ ...email, when: ["onBlur", "onSubmit"] }]
       })
@@ -338,7 +339,7 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "abc",
         validators: [{ ...required, when: ["onBlur"] }]
       })
@@ -372,14 +373,14 @@ describe("useForm input validation tests", () => {
 
     renderHook(() =>
       result.current.api.addInput({
-        name: "test",
+        id: "test",
         value: "abc",
         validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
-        name: "email",
+        id: "email",
         value: "george@ofthejungle.com",
         validators: [{ ...customValidator, when: ["onBlur", "onSubmit"] }]
       })

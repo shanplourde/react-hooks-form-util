@@ -6,7 +6,7 @@ export const defaultFormProps = {
   autoComplete: "on"
 };
 
-export const useForm = (id, initialState = {}) => {
+export const useForm = ({ id, initialState = {} }) => {
   const [formValues] = useState({
     ...initialState
   });
@@ -81,6 +81,7 @@ export const useForm = (id, initialState = {}) => {
 
   const onInputChange = (id, value) => {
     formValues[id] = value;
+    runInputValidations({ id, value, eventType: "onChange" });
   };
 
   const isValidatorAlreadyRunning = (id, value) =>
@@ -88,7 +89,11 @@ export const useForm = (id, initialState = {}) => {
     formValidity[id].isValidating &&
     formValidity[id].value === value;
 
-  const onInputBlur = async ({ id, value }) => {
+  const runInputValidations = async ({ id, value, eventType }) => {
+    const filteredValidators = validators[id].filter(validator => {
+      return validator.when.some(whenItem => whenItem === eventType);
+    });
+    if (filteredValidators.length === 0) return;
     if (validators[id]) {
       if (isValidatorAlreadyRunning(id, value)) {
         // No need to do anything at this point since validator is already running,
@@ -111,7 +116,7 @@ export const useForm = (id, initialState = {}) => {
       const validationResults = await runValidators({
         field: id,
         validators: validators[id],
-        eventType: "onBlur",
+        eventType: eventType,
         value
       });
       formValidityAsyncState.current = {
@@ -122,37 +127,27 @@ export const useForm = (id, initialState = {}) => {
     }
   };
 
+  const onInputBlur = async ({ id, value }) => {
+    runInputValidations({ id, value, eventType: "onBlur" });
+  };
+
   const isBlurWithinRadioGroup = (event, id) =>
     event.relatedTarget && event.relatedTarget.getAttribute("name") === id;
 
   const onRadioGroupBlur = async ({ id, value, event }) => {
     if (isBlurWithinRadioGroup(event, id)) return;
 
-    if (validators[id]) {
-      if (isValidatorAlreadyRunning(id, value)) {
-        // No need to do anything at this point since validator is already running
-        return;
-      }
-
-      setFormValidity({
-        ...formValidity,
-        [id]: { ...formValidity[id], isValidating: true, value }
-      });
-      const validationResults = await runValidators({
-        field: id,
-        validators: validators[id],
-        eventType: "onBlur",
-        value
-      });
-      setFormValidity({ ...formValidity, [id]: validationResults });
-    }
+    runInputValidations({ id, value, eventType: "onBlur" });
   };
 
   const addInput = ({
     id,
     value,
     validators: inputValidators = [],
-    inputProps = { onChange: onInputChange, onBlur: onInputBlur }
+    inputProps = {
+      onChange: onInputChange,
+      onBlur: onInputBlur
+    }
   }) => {
     const input = useInput({
       id,
@@ -180,6 +175,7 @@ export const useForm = (id, initialState = {}) => {
   };
 
   return {
+    id,
     getFormProps,
     formValues,
     formValidity,

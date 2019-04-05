@@ -10,8 +10,18 @@ jest.useFakeTimers();
 describe("useForm hook tests", () => {
   afterEach(cleanup);
 
+  it("should return id and initial state", () => {
+    const { result } = renderHook(() =>
+      useForm({ id: "test", initialState: { foo: "bar" } })
+    );
+    const { id, formValues } = result.current;
+
+    expect(id).toEqual("test");
+    expect(formValues).toEqual({ foo: "bar" });
+  });
+
   it("should return empty form props and form state", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { getFormProps, formValues, api } = result.current;
 
     expect(getFormProps).toBeDefined();
@@ -21,7 +31,7 @@ describe("useForm hook tests", () => {
   });
 
   it("should return an initial uiState", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { uiState } = result.current;
 
     expect(uiState).toEqual({
@@ -32,7 +42,7 @@ describe("useForm hook tests", () => {
   });
 
   it("should support custom form props", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { getFormProps } = result.current;
     const formProps = getFormProps({ foo: "bar" });
 
@@ -40,7 +50,9 @@ describe("useForm hook tests", () => {
   });
 
   it("should support custom onSubmit", async () => {
-    const { waitForNextUpdate, result } = renderHook(() => useForm());
+    const { waitForNextUpdate, result } = renderHook(() =>
+      useForm({ id: "test" })
+    );
     const onSubmit = jest.fn();
     const formProps = result.current.getFormProps({ onSubmit });
 
@@ -61,7 +73,9 @@ describe("useForm hook tests", () => {
   });
 
   it("should support async onSubmit", async () => {
-    const { waitForNextUpdate, result } = renderHook(() => useForm());
+    const { waitForNextUpdate, result } = renderHook(() =>
+      useForm({ id: "test" })
+    );
     const { getFormProps, uiState } = result.current;
 
     const onSubmit = evt =>
@@ -94,7 +108,7 @@ describe("useForm hook tests", () => {
   });
 
   it("should gracefully handle onSubmit errors", async () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { getFormProps, uiState } = result.current;
     const onSubmit = evt => new Error();
     const formProps = getFormProps({ onSubmit });
@@ -112,7 +126,9 @@ describe("useForm hook tests", () => {
   });
 
   it("should gracefully handle async onSubmit errors", async () => {
-    const { waitForNextUpdate, result } = renderHook(() => useForm());
+    const { waitForNextUpdate, result } = renderHook(() =>
+      useForm({ id: "test" })
+    );
     const onSubmit = evt =>
       new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -147,7 +163,7 @@ describe("useForm input tests", () => {
   afterEach(cleanup);
 
   it("should be able to add inputs", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
     renderHook(() => api.addInput({ id: "test", value: "123" }));
@@ -156,7 +172,7 @@ describe("useForm input tests", () => {
   });
 
   it("should be able to add input and get props", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
     renderHook(() => api.addInput({ id: "test", value: "123" }));
@@ -167,7 +183,7 @@ describe("useForm input tests", () => {
   });
 
   it("should be able to add multiple inputs", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
     renderHook(() => api.addInput({ id: "test", value: "123" }));
@@ -184,7 +200,7 @@ describe("useForm input validation tests", () => {
   afterEach(cleanup);
 
   it("should initialize validation state for inputs to valid regardless  of initial value", () => {
-    const { result } = renderHook(() => useForm());
+    const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
     renderHook(() => api.addInput({ id: "test", value: "123" }));
@@ -201,7 +217,9 @@ describe("useForm input validation tests", () => {
       error: "CUSTOM_ASYNC_ERROR"
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     renderHook(() =>
       result.current.api.addInput({
@@ -237,7 +255,9 @@ describe("useForm input validation tests", () => {
       error: "CUSTOM_ASYNC_ERROR"
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     renderHook(() =>
       result.current.api.addInput({
@@ -265,7 +285,9 @@ describe("useForm input validation tests", () => {
   });
 
   it("should be able to add inputs with invalid values and submit", async () => {
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     renderHook(() =>
       result.current.api.addInput({
@@ -300,7 +322,9 @@ describe("useForm input validation tests", () => {
   });
 
   it("should be able to add inputs with valid values and submit", async () => {
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     renderHook(() =>
       result.current.api.addInput({
@@ -335,7 +359,9 @@ describe("useForm input validation tests", () => {
   });
 
   it("Should only validate onSubmit validations on form submit, ignoring others such as onBlur", async () => {
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     renderHook(() =>
       result.current.api.addInput({
@@ -361,7 +387,9 @@ describe("useForm input validation tests", () => {
   });
 
   it("should be able to determine validations that are undetermined", async () => {
-    const { result, waitForNextUpdate } = renderHook(() => useForm());
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
 
     const customValidator = createValidator({
       validateFn: async text =>

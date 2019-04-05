@@ -7,9 +7,9 @@ import { sleep } from "../utils/async";
 const { required, email, mustBeTrue } = validators;
 
 function KitchenSink(props) {
-  const { getFormProps, formValues, uiState, api, formValidity } = useForm(
-    "settingsForm",
-    {
+  const { getFormProps, formValues, uiState, api, formValidity } = useForm({
+    id: "settingsForm",
+    initialState: {
       firstName: "George",
       lastName: "OfTheJungle",
       email: "george@thejungle.com",
@@ -21,11 +21,11 @@ function KitchenSink(props) {
       cookiesPerDay: null,
       preferredDate: null
     }
-  );
+  });
   const firstNameInput = api.addInput({
     id: "firstName",
     value: formValues.firstName,
-    validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...required, when: ["onChange", "onSubmit"] }]
   });
   const lastNameInput = api.addInput({
     id: "lastName",

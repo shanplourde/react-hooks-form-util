@@ -204,12 +204,7 @@ function KitchenSink(props) {
           </select>
         </div>
 
-        <fieldset
-          className="field-group"
-          {...cookiesPerDay.getInputProps({
-            id: "cookiesPerDay"
-          })}
-        >
+        <fieldset className="field-group">
           <legend>
             How many cookies per day *
             <br />

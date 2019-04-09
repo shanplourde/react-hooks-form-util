@@ -21,8 +21,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "test:watch": "react-scripts test --env=jsdom --watch",
+    "test": "react-scripts test --env=jsdom --verbose",
+    "test:watch": "react-scripts test --env=jsdom --watch --verbose",
     "test:coverage": "react-scripts test --env=jsdom --coverage --colors",
     "eject": "react-scripts eject"
   },

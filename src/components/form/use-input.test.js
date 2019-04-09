@@ -73,6 +73,19 @@ describe("useInput tests", () => {
     expect(result.current.value).toEqual("123");
   });
 
+  it("should support custom onBlur", () => {
+    const onBlur = jest.fn();
+
+    const { result } = renderHook(() => useInput({ id: "test", value: "123" }));
+    act(() => {
+      result.current.getInputProps({ onBlur }).onBlur({
+        value: "234"
+      });
+    });
+    expect(onBlur).toHaveBeenCalled();
+    expect(onBlur).toBeCalledWith({ value: "234" });
+  });
+
   it("should support custom onChange", () => {
     const onChange = jest.fn();
 
@@ -84,6 +97,16 @@ describe("useInput tests", () => {
     });
     expect(onChange).toHaveBeenCalled();
     expect(onChange).toBeCalledWith({ value: "234" });
+  });
+
+  it("should support custom onFocus", () => {
+    const onFocus = jest.fn();
+
+    const { result } = renderHook(() => useInput({ id: "test", value: "123" }));
+    act(() => {
+      result.current.getInputProps({ onFocus }).onFocus();
+    });
+    expect(onFocus).toHaveBeenCalled();
   });
 
   it("should return selected values from multi-select onBlur", () => {

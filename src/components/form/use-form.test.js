@@ -1,6 +1,6 @@
 import { renderHook, cleanup, act } from "react-hooks-testing-library";
 import { useForm } from "./use-form";
-import { validators, createValidator } from "./validators";
+import { validators, createValidator, validateInputEvents } from "./validators";
 
 const { required, email } = validators;
 const noop = () => {};
@@ -210,7 +210,7 @@ describe("useForm input validation tests", () => {
 
   it("should be able to add an input with valid asynchronous validation and get correct formValidity input state", async () => {
     const customValidator = createValidator({
-      validateFn: async text =>
+      validateFn: async ({ value }) =>
         await new Promise(resolve => {
           setTimeout(() => resolve(true), 1);
         }),
@@ -225,7 +225,7 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "",
-        validators: [{ ...customValidator, when: ["onBlur"] }]
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
       })
     );
     await result.current.inputs.test.getInputProps().onBlur({
@@ -248,7 +248,7 @@ describe("useForm input validation tests", () => {
 
   it("should be able to add an input with invalid asynchronous validation and get correct formValidity input state", async () => {
     const customValidator = createValidator({
-      validateFn: async text =>
+      validateFn: async ({ value }) =>
         await new Promise(resolve => {
           setTimeout(() => resolve(false), 1);
         }),
@@ -263,7 +263,7 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "",
-        validators: [{ ...customValidator, when: ["onBlur"] }]
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
       })
     );
     await result.current.inputs.test.getInputProps().onBlur({
@@ -293,14 +293,24 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "",
-        validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
         id: "last",
         value: "",
-        validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(async () => {
@@ -330,14 +340,24 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
-        validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
         id: "email",
         value: "george@ofthejungle.com",
-        validators: [{ ...email, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...email,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(async () => {
@@ -367,7 +387,7 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
-        validators: [{ ...required, when: ["onBlur"] }]
+        validators: [{ ...required, when: [validateInputEvents.onBlur] }]
       })
     );
     renderHook(async () => {
@@ -386,16 +406,19 @@ describe("useForm input validation tests", () => {
     });
   });
 
-  it("should be able to determine validations that are undetermined", async () => {
+  it("should set validations that raise errors as undetermined", async () => {
     const { result, waitForNextUpdate } = renderHook(() =>
       useForm({ id: "test" })
     );
 
+    const expectedError = new Error("oh no");
+
     const customValidator = createValidator({
-      validateFn: async text =>
+      validateFn: async ({ value }) => {
         await new Promise(resolve => {
-          throw new Error("oh no");
-        }),
+          throw expectedError;
+        });
+      },
       error: "CUSTOM_ASYNC_ERROR"
     });
 
@@ -403,14 +426,24 @@ describe("useForm input validation tests", () => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
-        validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(() =>
       result.current.api.addInput({
         id: "email",
         value: "george@ofthejungle.com",
-        validators: [{ ...customValidator, when: ["onBlur", "onSubmit"] }]
+        validators: [
+          {
+            ...customValidator,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
       })
     );
     renderHook(async () => {
@@ -427,9 +460,70 @@ describe("useForm input validation tests", () => {
     expect(result.current.formValidity).toEqual({
       email: {
         field: "email",
-        undeterminedValidations: ["CUSTOM_ASYNC_ERROR"],
+        undeterminedValidations: [
+          {
+            additional: expectedError,
+            error: "CUSTOM_ASYNC_ERROR"
+          }
+        ],
         valid: true
       },
+      test: { field: "test", valid: true }
+    });
+  });
+
+  it("Should only process latest asynchronous validations on a given input", async () => {
+    const customValidator = createValidator({
+      validateFn: async ({ value }) =>
+        await new Promise(resolve => {
+          setTimeout(() => resolve(value.length > 2), 100);
+        }),
+      error: "CUSTOM_ASYNC_ERROR"
+    });
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
+
+    renderHook(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "12",
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
+      })
+    );
+    await result.current.inputs.test.getInputProps().onBlur(
+      {
+        preventDefault: noop,
+        target: {
+          value: "12"
+        }
+      },
+      "12"
+    );
+    jest.advanceTimersByTime(50);
+    expect(result.current.formValidity).toEqual({
+      test: { isValidating: true, value: "12" }
+    });
+
+    await result.current.inputs.test.getInputProps().onBlur(
+      {
+        preventDefault: noop,
+        target: {
+          value: "1234"
+        }
+      },
+      "1234"
+    );
+
+    jest.advanceTimersByTime(50);
+    expect(result.current.formValidity).toEqual({
+      test: { isValidating: true, value: "1234" }
+    });
+
+    jest.runAllTimers();
+    await waitForNextUpdate();
+    expect(result.current.formValidity).toEqual({
       test: { field: "test", valid: true }
     });
   });

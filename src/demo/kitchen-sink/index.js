@@ -1,10 +1,15 @@
 import React from "react";
 import { DatePicker } from "./date-picker";
 import { useForm } from "../../components/form/use-form";
-import { validators, createValidator } from "../../components/form/validators";
+import {
+  validators,
+  createValidator,
+  validateInputEvents
+} from "../../components/form/validators";
 import { sleep } from "../utils/async";
 
 const { required, email, mustBeTrue } = validators;
+const { onBlur, onSubmit, onChange } = validateInputEvents;
 
 function KitchenSink(props) {
   const { getFormProps, formValues, uiState, api, formValidity } = useForm({
@@ -13,6 +18,7 @@ function KitchenSink(props) {
       firstName: "George",
       lastName: "OfTheJungle",
       email: "george@thejungle.com",
+      confirmEmail: "george@thejungle.com",
       custom: "custom",
       agreeToTerms: false,
       comments: "",
@@ -25,29 +31,39 @@ function KitchenSink(props) {
   const firstNameInput = api.addInput({
     id: "firstName",
     value: formValues.firstName,
-    validators: [{ ...required, when: ["onChange", "onSubmit"] }]
+    validators: [{ ...required, when: [onChange, onSubmit] }]
   });
   const lastNameInput = api.addInput({
     id: "lastName",
     value: formValues.lastName,
-    validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...required, when: [onBlur, onSubmit] }]
   });
   const emailInput = api.addInput({
     id: "email",
     value: formValues.email,
     validators: [
-      { ...required, when: ["onBlur", "onSubmit"] },
+      { ...required, when: [onBlur, onSubmit] },
       {
         ...email,
-        when: ["onBlur", "onSubmit"]
+        when: [onBlur, onSubmit]
       }
     ]
   });
+  const confirmEmailValidator = createValidator({
+    validateFn: ({ value, formValues }) => value === formValues.email,
+    error: "EMAILS_DO_NOT_MATCH"
+  });
+  const confirmEmailInput = api.addInput({
+    id: "confirmEmail",
+    value: formValues.confirmEmail,
+    validators: [{ ...confirmEmailValidator, when: [onBlur, onSubmit] }]
+  });
+
   const customValidator = createValidator({
-    validateFn: async text =>
+    validateFn: async ({ value }) =>
       await new Promise(resolve => {
         setTimeout(() => {
-          resolve((text || "").length > 8);
+          resolve((value || "").length > 8);
         }, 5000);
       }),
     error: "CUSTOM_ASYNC_ERROR"
@@ -56,13 +72,13 @@ function KitchenSink(props) {
   const customInput = api.addInput({
     id: "custom",
     value: formValues.custom,
-    validators: [{ ...customValidator, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...customValidator, when: [onBlur, onSubmit] }]
   });
 
   const agreeToTerms = api.addInput({
     id: "agreeToTerms",
     value: formValues.agreeToTerms,
-    validators: [{ ...mustBeTrue, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...mustBeTrue, when: [onBlur, onSubmit] }]
   });
 
   const comments = api.addInput({
@@ -73,13 +89,13 @@ function KitchenSink(props) {
   const favouriteFlavour = api.addInput({
     id: "favouriteFlavour",
     value: formValues.favouriteFlavour,
-    validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...required, when: [onBlur, onSubmit] }]
   });
 
   const favouriteColours = api.addInput({
     id: "favouriteColours",
     value: formValues.favouriteColours,
-    validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...required, when: [onBlur, onSubmit] }]
   });
 
   const cookieOptions = [
@@ -90,15 +106,15 @@ function KitchenSink(props) {
   const cookiesPerDay = api.addRadioGroup({
     id: "cookiesPerDay",
     value: formValues.cookiesPerDay,
-    validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+    validators: [{ ...required, when: [onBlur, onSubmit] }]
   });
 
   // Not a real reference example of how to validate dates :)
   const dateRangeValidator = createValidator({
-    validateFn: date => {
+    validateFn: ({ value }) => {
       const startDate = new Date(2018, 1, 1);
       const endDate = new Date(2018, 12, 33);
-      return date && date >= startDate && date <= endDate;
+      return value && value >= startDate && value <= endDate;
     },
     error: "DATE_RANGE_ERROR"
   });
@@ -107,12 +123,12 @@ function KitchenSink(props) {
     id: "preferredDate",
     value: formValues.preferredDate,
     validators: [
-      { ...required, when: ["onBlur", "onSubmit"] },
-      { ...dateRangeValidator, when: ["onBlur", "onSubmit"] }
+      { ...required, when: [onBlur, onSubmit] },
+      { ...dateRangeValidator, when: [onBlur, onSubmit] }
     ]
   });
 
-  const onSubmit = async ({ evt, formValues }) => {
+  const handleOnSubmit = async ({ evt, formValues }) => {
     await sleep(2000);
     console.log("sample-form onSubmit, formValues", formValues);
   };
@@ -129,13 +145,17 @@ function KitchenSink(props) {
         <div className="submitting-indicator">Submitting</div>
       )}
       <h3>Form</h3>
-      <form {...getFormProps({ onSubmit })}>
+      <form {...getFormProps({ onSubmit: handleOnSubmit })}>
         <div className="field-group">
           <label htmlFor={firstNameInput.id}>
             First name {JSON.stringify(firstNameInput.uiState)} --{" "}
             {JSON.stringify(formValidity.firstName)} *
           </label>
-          <input type="text" {...firstNameInput.getInputProps()} />
+          <input
+            type="text"
+            {...firstNameInput.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
         </div>
 
         <div className="field-group">
@@ -143,7 +163,11 @@ function KitchenSink(props) {
             Last name {JSON.stringify(lastNameInput.uiState)} --{" "}
             {JSON.stringify(formValidity.lastName)} *
           </label>
-          <input type="text" {...lastNameInput.getInputProps()} />
+          <input
+            type="text"
+            {...lastNameInput.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
         </div>
 
         <div className="field-group">
@@ -151,7 +175,23 @@ function KitchenSink(props) {
             Email address {JSON.stringify(emailInput.uiState)} --{" "}
             {JSON.stringify(formValidity.email)}*
           </label>
-          <input type="text" {...emailInput.getInputProps()} />
+          <input
+            type="text"
+            {...emailInput.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
+        </div>
+
+        <div className="field-group">
+          <label htmlFor={confirmEmailInput.id}>
+            Email address {JSON.stringify(confirmEmailInput.uiState)} --{" "}
+            {JSON.stringify(formValidity.confirmEmail)}*
+          </label>
+          <input
+            type="text"
+            {...confirmEmailInput.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
         </div>
 
         <div className="field-group">
@@ -160,11 +200,19 @@ function KitchenSink(props) {
             {JSON.stringify(customInput.uiState)} --{" "}
             {JSON.stringify(formValidity.custom)}*
           </label>
-          <input type="text" {...customInput.getInputProps()} />
+          <input
+            type="text"
+            {...customInput.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
         </div>
 
         <div className="field-group">
-          <input type="checkbox" {...agreeToTerms.getCheckProps()} />
+          <input
+            type="checkbox"
+            {...agreeToTerms.getCheckProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
           <label htmlFor={agreeToTerms.id}>
             Checkbox that must be checked *
           </label>
@@ -176,14 +224,20 @@ function KitchenSink(props) {
           <label htmlFor={comments.id}>
             Comments {JSON.stringify(comments.uiState)} --{" "}
           </label>
-          <textarea {...comments.getInputProps()} />
+          <textarea
+            {...comments.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
         </div>
 
         <div className="field-group">
           <label htmlFor={favouriteFlavour.id}>Your favourite flavour *</label>
           {JSON.stringify(favouriteFlavour.uiState)} --{" "}
           {JSON.stringify(formValidity.favouriteFlavour)}
-          <select {...favouriteFlavour.getInputProps()}>
+          <select
+            {...favouriteFlavour.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          >
             <option />
             <option value="grapefruit">Grapefruit</option>
             <option value="lime">Lime</option>
@@ -196,7 +250,11 @@ function KitchenSink(props) {
           <label htmlFor={favouriteColours.id}>Your favourite colours *</label>
           {JSON.stringify(favouriteColours.uiState)} --{" "}
           {JSON.stringify(formValidity.favouriteColours)}
-          <select {...favouriteColours.getInputProps()} multiple={true}>
+          <select
+            {...favouriteColours.getInputProps()}
+            multiple={true}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          >
             <option value="red">Red</option>
             <option value="green">Green</option>
             <option value="blue">Blue</option>
@@ -221,6 +279,7 @@ function KitchenSink(props) {
                 })}
                 type="radio"
                 checked={cookie.value === formValues.cookiesPerDay}
+                disabled={uiState.isSubmitting || uiState.isValidating}
               />
               <label htmlFor={`cookiesPerDay_${cookie.id}`}>
                 {cookie.value}
@@ -231,7 +290,10 @@ function KitchenSink(props) {
 
         <fieldset className="field-group">
           <legend>Select a date from 2018 *</legend>
-          <DatePicker {...preferredDate.getInputProps()} />
+          <DatePicker
+            {...preferredDate.getInputProps()}
+            disabled={uiState.isSubmitting || uiState.isValidating}
+          />
           <div>
             {JSON.stringify(preferredDate.uiState)} --{" "}
             {JSON.stringify(formValidity.preferredDate)}

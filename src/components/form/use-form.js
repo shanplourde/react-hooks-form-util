@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useInput } from "./use-input";
-import { runValidators } from "./validators";
+import { runValidators, validateInputEvents } from "./validators";
 
 export const defaultFormProps = {
   autoComplete: "on"
@@ -19,6 +19,7 @@ export const useForm = ({ id, initialState = {} }) => {
     isSubmitting: false
   });
   const [inputs] = useState({});
+  const validationRuntimeMap = useRef(new Map());
 
   const validateAll = async eventType => {
     const promises = [];
@@ -30,7 +31,8 @@ export const useForm = ({ id, initialState = {} }) => {
           field,
           validators: validators[field],
           eventType,
-          value: inputs[field].value
+          value: inputs[field].value,
+          formValues
         })
       );
     });
@@ -46,7 +48,6 @@ export const useForm = ({ id, initialState = {} }) => {
       formValidity[result.field] = result;
     });
 
-    // newUiState = { ...newUiState, isValidating: false };
     setUiState({ ...newUiState, isValidating: false });
   };
 
@@ -54,7 +55,7 @@ export const useForm = ({ id, initialState = {} }) => {
     evt.preventDefault();
     let newUiState = { ...uiState };
     try {
-      await validateAll("onSubmit");
+      await validateAll(validateInputEvents.onSubmit, evt.timeStamp);
       const isFormValid = !Object.keys(formValidity).some(
         field => !formValidity[field].valid
       );
@@ -79,9 +80,14 @@ export const useForm = ({ id, initialState = {} }) => {
     onSubmit: evt => onSubmit(evt, props)
   });
 
-  const onInputChange = (id, value) => {
+  const onInputChange = ({ event, id, value }) => {
     formValues[id] = value;
-    runInputValidations({ id, value, eventType: "onChange" });
+    runInputValidations({
+      id,
+      value,
+      eventType: validateInputEvents.onChange,
+      timeStamp: event.timeStamp
+    });
   };
 
   const isValidatorAlreadyRunning = (id, value) =>
@@ -89,17 +95,31 @@ export const useForm = ({ id, initialState = {} }) => {
     formValidity[id].isValidating &&
     formValidity[id].value === value;
 
-  const runInputValidations = async ({ id, value, eventType }) => {
+  // Discard oldest async validations on a given input
+  const isCurrentValidationRunLatest = (runtimeMap, id, timeStamp) =>
+    runtimeMap.get(id) === undefined || runtimeMap.get(id) <= timeStamp;
+
+  const runInputValidations = async ({ id, value, eventType, timeStamp }) => {
+    validationRuntimeMap.current.set(id, timeStamp);
     const filteredValidators = validators[id].filter(validator => {
       return validator.when.some(whenItem => whenItem === eventType);
     });
     if (filteredValidators.length === 0) return;
+
     if (validators[id]) {
+      const isCurrentRunLatest = () =>
+        isCurrentValidationRunLatest(
+          validationRuntimeMap.current,
+          id,
+          timeStamp
+        );
+
       if (isValidatorAlreadyRunning(id, value)) {
         // No need to do anything at this point since validator is already running,
         return;
       }
-      // TODO: Cancel running promises from previous async validators
+      if (!isCurrentRunLatest()) return;
+
       formValidityAsyncState.current = { ...formValidity };
       formValidity[id] = {
         ...formValidityAsyncState.current[id],
@@ -107,28 +127,46 @@ export const useForm = ({ id, initialState = {} }) => {
         value
       };
 
+      if (!isCurrentRunLatest()) return;
+
       formValidityAsyncState.current = {
         ...formValidityAsyncState.current,
         [id]: { ...formValidityAsyncState[id], isValidating: true, value }
       };
+
+      if (!isCurrentRunLatest()) return;
       setFormValidity(formValidityAsyncState.current);
+
+      if (!isCurrentRunLatest()) return;
 
       const validationResults = await runValidators({
         field: id,
         validators: validators[id],
         eventType: eventType,
-        value
+        value,
+        runId: timeStamp,
+        formValues
       });
+
+      if (!isCurrentRunLatest()) return;
+
       formValidityAsyncState.current = {
         ...formValidityAsyncState.current,
         [id]: validationResults
       };
+
+      if (!isCurrentRunLatest()) return;
       setFormValidity(formValidityAsyncState.current);
     }
   };
 
-  const onInputBlur = async ({ id, value }) => {
-    runInputValidations({ id, value, eventType: "onBlur" });
+  const onInputBlur = async ({ event, id, value }) => {
+    runInputValidations({
+      id,
+      value,
+      eventType: validateInputEvents.onBlur,
+      timeStamp: event.timeStamp
+    });
   };
 
   const isBlurWithinRadioGroup = (event, id) =>
@@ -137,7 +175,12 @@ export const useForm = ({ id, initialState = {} }) => {
   const onRadioGroupBlur = async ({ id, value, event }) => {
     if (isBlurWithinRadioGroup(event, id)) return;
 
-    runInputValidations({ id, value, eventType: "onBlur" });
+    runInputValidations({
+      id,
+      value,
+      eventType: validateInputEvents.onBlur,
+      timeStamp: event.timeStamp
+    });
   };
 
   const addInput = ({

@@ -26,9 +26,9 @@ export const useInput = ({ id, value, props = {} }) => {
     id,
     ...props,
     onChange: (event, inputValue) => {
-      const val = inputValue || getInputValue(event.target);
-      setInputValue(val);
-      props.onChange && props.onChange(id, val);
+      const value = inputValue || getInputValue(event.target);
+      setInputValue(value);
+      props.onChange && props.onChange({ event, id, value });
     },
     onBlur: (event, inputValue) => {
       const value = inputValue || getInputValue(event.target);
@@ -36,6 +36,7 @@ export const useInput = ({ id, value, props = {} }) => {
     },
     onFocus: evt => {
       setVisited(true);
+      props.onFocus && props.onFocus({ evt });
     }
   });
 
@@ -57,7 +58,7 @@ export const useInput = ({ id, value, props = {} }) => {
     api: {
       setValue: val => {
         setInputValue(val);
-        props.onChange && props.onChange(id, val);
+        props.onChange && props.onChange({ id, value: val });
       }
     },
     uiState: {

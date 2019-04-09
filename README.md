@@ -142,9 +142,10 @@ const firstNameInput = api.addInput({
   has run
 
 ```javascript
-import { validators } from "validators";
+import { validators, validateInputEvents } from "validators";
 const { required, email } = validators;
 
+const { onBlur, onSubmit, onChange } = validateInputEvents;
 
 const { formValidity, formValues, api } = useForm({
   ...
@@ -153,21 +154,21 @@ const { formValidity, formValues, api } = useForm({
 const firstNameInput = api.addInput({
   id: "firstName",
   value: formValues.firstName,
-  validators: [{ ...required, when: ["onChange", "onSubmit"] }]
+  validators: [{ ...required, when: [onChange, onSubmit] }]
 });
 const lastNameInput = api.addInput({
   id: "lastName",
   value: formValues.lastName,
-  validators: [{ ...required, when: ["onBlur", "onSubmit"] }]
+  validators: [{ ...required, when: [onBlur, onSubmit] }]
 });
 const emailInput = api.addInput({
   id: "email",
   value: formValues.email,
   validators: [
-    { ...required, when: ["onBlur", "onSubmit"] },
+    { ...required, when: [onBlur, onSubmit] },
     {
       ...email,
-      when: ["onBlur", "onSubmit"]
+      when: [onBlur, onSubmit]
     }
   ]
 });
@@ -187,17 +188,19 @@ console.log('formValidity', formValidity, formValidity.lastName)
   triggered for a given input
 
 ```javascript
-import { createValidator } from "validators";
+import { createValidator, validateInputEvents } from "validators";
+
+const { onBlur, onSubmit } = validateInputEvents;
 
 const { formValidity, formValues, api } = useForm({
   ...
 });
 
 const customValidator = createValidator({
-  validateFn: async text =>
+  validateFn: async ({ value }) =>
     await new Promise(resolve => {
       setTimeout(() => {
-        resolve((text || "").length > 8);
+        resolve((value || "").length > 8);
       }, 5000);
     }),
   error: "CUSTOM_ASYNC_ERROR"
@@ -206,9 +209,7 @@ const customValidator = createValidator({
 const customInput = api.addInput({
   id: "custom",
   value: formValues.custom,
-  validators: [
-    { ...customValidator, when: ["onBlur", "onSubmit"], debounce: 1000 }
-  ]
+  validators: [{ ...customValidator, when: [onBlur, onSubmit] }]
 });
 
 
@@ -216,14 +217,144 @@ console.log(formValidity.custom); // returns validity state
 
 ```
 
+## Validating one form field against another
+
+- When creating a custom validator with `createValidator`,
+  `validateFn` receives a `formValues` argument that allows you to
+  compare a form field against all other values in the current form
+
+```javascript
+import { createValidator, validateInputEvents } from "validators";
+
+const { onBlur, onSubmit } = validateInputEvents;
+
+const emailInput = api.addInput({
+  id: "email",
+  value: formValues.email,
+  validators: [
+    { ...required, when: [onBlur, onSubmit] },
+    {
+      ...email,
+      when: [onBlur, onSubmit]
+    }
+  ]
+});
+
+const confirmEmailValidator = createValidator({
+  validateFn: ({ value, formValues }) =>
+    value === formValues.email;
+  },
+  error: "EMAILS_DO_NOT_MATCH"
+});
+
+const confirmEmailInput = api.addInput({
+  id: "confirmEmail",
+  value: formValues.confirmEmail,
+  validators: [{ ...confirmEmailValidator, when: [onBlur, onSubmit] }]
+});
+
+```
+
 ## Setting up asynchronous validations
 
-- Nothing else needs to be done for asychronous validations, they're
+- Nothing else needs to be done for asynchronous validations, they're
   supported right out of the box
+- The custom validator shown below could be used the same way
+  as any other validator
+
+```javascript
+const customValidator = createValidator({
+  validateFn: async ({ value }) =>
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve((value || "").length > 8);
+      }, 5000);
+    }),
+  error: "CUSTOM_ASYNC_ERROR"
+});
+```
+
+## Asynchronous validations
+
+### Consecutive or concurrent async validations - same input value
+
+- Each blur / change event on an input requests new asynchronous validations
+- However if an input's value is the same, the new validation request is
+  ignored, allowing the original validation request to complete. This should
+  optimize the user experience
+- In the future, this may be an option that you can opt out of, in case
+  you need an asynchronous validation that depends on other form field values
+
+### Consecutive or concurrent async validations - different input value
+
+- Each blur / change event on an input requests new asynchronous validations
+- When the latest input value is different from the previous, a new
+  asynchronous validation request is kicked off
+- Previously ran validation requests are ignored, but any asynchronous
+  activity they are performing is not cancelled
 
 ## Handling form submits
 
 - useForm does not block form submits if the form is
   in an invalid state
-- This allows you to either submit the form on error
-  or suppress submission
+- This allows you to either submit the form on error,
+  prevent submission, or check if critical validations
+  passed before submission, for example
+- All validations are executed before your custom
+  `onSubmit` form is invoked
+- `formValidity` and uiState.isValid are set before your custom `onSubmit`
+  is executed
+
+```javascript
+const { getFormProps, formValues, uiState, formValidity } = useForm({
+  id: "settingsForm",
+  initialState: {
+    firstName: "George",
+    lastName: "OfTheJungle"
+    ///
+  }
+});
+
+const handleOnSubmit = async ({ evt, formValues }) => {
+  await sleep(2000);
+  console.log("sample-form onSubmit, formValues", formValues);
+  if (uiState.isValid || formValidity.firstName.isValid) {
+    // Guess we're ok with just first name being valid, let's submit our form
+  }
+};
+
+<form {...getFormProps({ onSubmit: handleOnSubmit })} />;
+```
+
+## Tracking overall form state with uiState
+
+- `useForm` returns a `uiState` property that allows you to track the following:
+  - `isValidating`: is form getting validated
+  - `isSubmitting`: is form getting submitted
+  - `isValid`: is form valid
+
+A submit button could therefore be disabled, or a modal overal perhaps displayed, if the form
+was being validated or submitted.
+
+```javascript
+<div className="input-footer">
+  <button type="submit" disabled={uiState.isSubmitting || uiState.isValidating}>
+    Save
+  </button>
+  {uiState.isSubmitting || (uiState.isValidating && <p>Submitting...</p>)}
+</div>
+```
+
+## Error handling
+
+### Custom form `onSubmit` errors
+
+- useForm doesn't handle custom onSubmit errors, you'll have to handle
+  these
+
+### Custom validation errors
+
+- When a custom validation throws an error, the validator's state
+  is set to `isValue = true`, and a property
+  called `undeterminedValidations` is set that includes the
+  validation name (error key), and error details

@@ -2,11 +2,18 @@ export const constants = {
   undetermined: "undetermined"
 };
 
+export const validateInputEvents = {
+  onBlur: 0,
+  onChange: 1,
+  onSubmit: 2
+};
+
 export const runValidators = async ({
   field,
   validators,
   eventType,
-  value
+  value,
+  formValues
 }) => {
   const validationResults = [];
   let isValid = true;
@@ -16,10 +23,10 @@ export const runValidators = async ({
   for (let i = 0; i < filteredValidators.length; i++) {
     const validator = filteredValidators[i];
     if (isValid) {
-      const validationResult = await validator.validate(value);
+      const validationResult = await validator.validate({ value, formValues });
       if (!validationResult.valid && !validationResult.undeterminedValidation)
         isValid = false;
-      validationResults.push(validationResult); // validator.validate(value));
+      validationResults.push(validationResult);
     }
   }
   const validationErrors = validationResults.filter(
@@ -31,7 +38,10 @@ export const runValidators = async ({
         result.undeterminedValidation &&
         result.undeterminedValidation.length > 0
     )
-    .map(validation => validation.undeterminedValidation);
+    .map(validation => ({
+      error: validation.undeterminedValidation,
+      additional: validation.additional
+    }));
   const undetermined =
     undeterminedValidations.length === 0
       ? null
@@ -58,26 +68,30 @@ export const runValidators = async ({
  */
 export const createValidator = ({ validateFn, error = "ERROR_KEY" }) => {
   return {
-    validate: async text => {
+    validate: async ({ value, formValues }) => {
       try {
-        const isValid = await validateFn(text);
+        const isValid = await validateFn({ value, formValues });
         if (typeof isValid === "boolean" && isValid) {
           return { valid: true };
         }
         return { valid: false, error };
-      } catch {
-        return { undeterminedValidation: error };
+      } catch (e) {
+        return {
+          undeterminedValidation: error,
+          additional: e
+        };
       }
     }
   };
 };
 
 const validators = {};
+
 /**
- * A required field validator that fires on blur and submit
+ * A required field validator
  */
 validators.required = createValidator({
-  validateFn: value =>
+  validateFn: ({ value, formValues }) =>
     (value !== null &&
       value !== undefined &&
       (typeof value === "object" && value.length === undefined)) ||
@@ -89,17 +103,18 @@ validators.required = createValidator({
  * Useful for checkboxes that must be checked
  */
 validators.mustBeTrue = createValidator({
-  validateFn: value => value !== null && value !== undefined && value === true,
+  validateFn: ({ value, formValues }) =>
+    value !== null && value !== undefined && value === true,
   error: "MUST_BE_TRUE"
 });
 
 /**
- * An email validator that fires on blur and submit
+ * An email validator
  */
 validators.email = createValidator({
-  validateFn: text => {
+  validateFn: ({ value, formValues }) => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    return !text || re.test(String(text).toLowerCase());
+    return !value || re.test(String(value).toLowerCase());
   },
   error: "INVALID_EMAIL"
 });

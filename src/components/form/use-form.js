@@ -72,6 +72,9 @@ export const useForm = ({ id, initialState = {} }) => {
       if (props.onSubmit) {
         await props.onSubmit({ evt, inputValues });
       }
+    } catch (e) {
+      setUiState({ ...newUiState, isSubmitting: false });
+      throw e;
     } finally {
       setUiState({ ...newUiState, isSubmitting: false });
     }

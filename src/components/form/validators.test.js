@@ -330,8 +330,8 @@ describe("createValidator tests", () => {
 
   it("Gracefully handles async validators that reject", async () => {
     const customValidator = createValidator({
-      validateFn: async ({ value }) =>
-        await new Promise((resolve, reject) => {
+      validateFn: ({ value }) =>
+        new Promise((resolve, reject) => {
           setTimeout(() => {
             reject("Error");
           }, 0);

@@ -76,7 +76,6 @@ export const useForm = ({ id, initialState = {} }) => {
       }
     } catch (e) {
       setUiState({ ...newUiState, isSubmitting: false });
-      throw e;
     } finally {
       setUiState({ ...newUiState, isSubmitting: false });
     }
@@ -85,7 +84,9 @@ export const useForm = ({ id, initialState = {} }) => {
   const getFormProps = (props = {}) => ({
     ...defaultFormProps,
     ...props,
-    onSubmit: evt => onSubmit(evt, props)
+    onSubmit: evt => {
+      onSubmit(evt, props);
+    }
   });
 
   const onInputChange = ({ event, id, value }) => {

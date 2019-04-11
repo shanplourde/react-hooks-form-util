@@ -10,12 +10,12 @@
     "prettier": "^1.16.4",
     "react": "^16.9.0-alpha.0",
     "react-day-picker": "^7.3.0",
-    "react-dom": "16.8.3",
+    "react-dom": "^16.9.0-alpha.0",
     "react-router-dom": "4.3.1",
     "react-scripts": "2.1.8"
   },
   "devDependencies": {
-    "react-hooks-testing-library": "^0.3.8",
+    "react-hooks-testing-library": "^0.4.0",
     "react-testing-library": "^6.1.2"
   },
   "scripts": {

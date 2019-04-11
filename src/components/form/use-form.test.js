@@ -61,7 +61,7 @@ describe("useForm hook tests", () => {
     expect(formProps.onSubmit).toBeDefined();
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(async () => await formProps.onSubmit({ preventDefault: noop }));
+    act(() => formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
     act(() => jest.runAllTimers());
     await waitForNextUpdate();
@@ -91,7 +91,7 @@ describe("useForm hook tests", () => {
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
     act(() => formProps.onSubmit({ preventDefault: noop }));
-    await waitForNextUpdate();
+    await act(async () => await waitForNextUpdate());
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
       isValid: true,
@@ -131,17 +131,17 @@ describe("useForm hook tests", () => {
     const onSubmit = evt =>
       new Promise((resolve, reject) => {
         setTimeout(() => {
-          reject();
+          reject("Error");
         }, 1);
       });
-    const formProps = result.current.getFormProps({ onSubmit });
-
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
     act(() => {
-      formProps.onSubmit({ preventDefault: noop });
+      result.current
+        .getFormProps({ onSubmit })
+        .onSubmit({ preventDefault: noop });
     });
-    await waitForNextUpdate();
+    await act(async () => await waitForNextUpdate());
 
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
@@ -165,7 +165,9 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
     expect(result.current.inputValues).toEqual({ test: "123" });
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
@@ -177,8 +179,9 @@ describe("useForm input tests", () => {
   it("should be able to add input and get props", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
-
-    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
     const inputProps = result.current.inputs.test.getInputProps();
 
     expect(inputProps.id).toEqual("test");
@@ -188,9 +191,13 @@ describe("useForm input tests", () => {
   it("should be able to add multiple inputs", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
 
-    act(() => api.addInput({ id: "test", value: "123" }));
-    act(() => api.addInput({ id: "secondtest", value: "234" }));
+    act(() => {
+      api.addInput({ id: "secondtest", value: "234" });
+    });
 
     expect(result.current.inputValues).toEqual({
       secondtest: "234",
@@ -202,7 +209,9 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
     });
@@ -217,10 +226,16 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    act(() => api.addInput({ id: "test", value: "123" }));
-    act(() => api.addInput({ id: "secondtest", value: "234" }));
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
+    act(() => {
+      api.addInput({ id: "secondtest", value: "234" });
+    });
 
-    act(() => api.removeInput("test"));
+    act(() => {
+      api.removeInput("test");
+    });
 
     expect(result.current.inputValues).toEqual({ secondtest: "234" });
     expect(Object.entries(result.current.inputs).length).toEqual(1);
@@ -233,7 +248,9 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    act(() => api.addInput({ id: "test", value: "a" }));
+    act(() => {
+      api.addInput({ id: "test", value: "a" });
+    });
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
     });
@@ -263,7 +280,9 @@ describe("useForm input validation tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
 
     expect(result.current.formValidity).toEqual({});
   });
@@ -281,13 +300,13 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "",
         validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-      })
-    );
+      });
+    });
     act(
       async () =>
         await result.current.inputs.test.getInputProps().onBlur({
@@ -322,13 +341,13 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "",
         validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-      })
-    );
+      });
+    });
     act(
       async () =>
         await result.current.inputs.test.getInputProps().onBlur({
@@ -355,7 +374,7 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "",
@@ -365,9 +384,9 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(() =>
+      });
+    });
+    act(() => {
       result.current.api.addInput({
         id: "last",
         value: "",
@@ -377,10 +396,10 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(async () => {
-      await result.current.getFormProps().onSubmit({ preventDefault: noop });
+      });
+    });
+    act(() => {
+      result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
     act(() => jest.runAllTimers());
@@ -402,7 +421,7 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
@@ -412,9 +431,9 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(() =>
+      });
+    });
+    act(() => {
       result.current.api.addInput({
         id: "email",
         value: "george@ofthejungle.com",
@@ -424,10 +443,10 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(async () => {
-      await result.current.getFormProps().onSubmit({ preventDefault: noop });
+      });
+    });
+    act(() => {
+      result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
     act(() => jest.runAllTimers());
@@ -449,15 +468,15 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
         validators: [{ ...required, when: [validateInputEvents.onBlur] }]
-      })
-    );
-    act(async () => {
-      await result.current.getFormProps().onSubmit({ preventDefault: noop });
+      });
+    });
+    act(() => {
+      result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     act(() => jest.runAllTimers());
     await waitForNextUpdate();
@@ -477,18 +496,17 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    const expectedError = new Error("oh no");
+    const expectedError = "oh no";
 
     const customValidator = createValidator({
-      validateFn: async ({ value }) => {
-        await new Promise((resolve, reject) => {
+      validateFn: ({ value }) =>
+        new Promise((resolve, reject) => {
           reject(expectedError);
-        });
-      },
+        }),
       error: "CUSTOM_ASYNC_ERROR"
     });
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "abc",
@@ -498,9 +516,7 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(() =>
+      });
       result.current.api.addInput({
         id: "email",
         value: "george@ofthejungle.com",
@@ -510,11 +526,12 @@ describe("useForm input validation tests", () => {
             when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
           }
         ]
-      })
-    );
-    act(async () => {
-      await result.current.getFormProps().onSubmit({ preventDefault: noop });
+      });
     });
+    act(async () => {
+      result.current.getFormProps().onSubmit({ preventDefault: noop });
+    });
+    // await waitForNextUpdate();
     act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
@@ -551,13 +568,13 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    act(() =>
+    act(() => {
       result.current.api.addInput({
         id: "test",
         value: "12",
         validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-      })
-    );
+      });
+    });
     act(
       async () =>
         await result.current.inputs.test.getInputProps().onBlur(

@@ -8,7 +8,7 @@
     "lint-staged": "^8.1.5",
     "node-sass": "4.11.0",
     "prettier": "^1.16.4",
-    "react": "16.8.3",
+    "react": "^16.9.0-alpha.0",
     "react-day-picker": "^7.3.0",
     "react-dom": "16.8.3",
     "react-router-dom": "4.3.1",
@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "react-hooks-testing-library": "^0.3.8",
-    "react-testing-library": "^6.0.2"
+    "react-testing-library": "^6.1.2"
   },
   "scripts": {
     "start": "react-scripts start",

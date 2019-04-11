@@ -5,7 +5,9 @@ import { validators, createValidator, validateInputEvents } from "./validators";
 const { required, email } = validators;
 const noop = () => {};
 
-jest.useFakeTimers();
+beforeEach(() => {
+  jest.useFakeTimers();
+});
 
 describe("useForm hook tests", () => {
   afterEach(cleanup);
@@ -59,10 +61,9 @@ describe("useForm hook tests", () => {
     expect(formProps.onSubmit).toBeDefined();
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    // act(async () => {
-    renderHook(async () => await formProps.onSubmit({ preventDefault: noop }));
+    act(async () => await formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
     expect(onSubmit).toHaveBeenCalled();
     expect(result.current.uiState).toEqual({
@@ -82,23 +83,21 @@ describe("useForm hook tests", () => {
       new Promise(r => {
         setTimeout(() => {
           r();
-        }, 1);
+        }, 100);
       });
 
     const formProps = getFormProps({ onSubmit });
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(() => {
-      formProps.onSubmit({ preventDefault: noop });
-    });
+    act(() => formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
       isValid: true,
       isValidating: false
     });
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
     expect(uiState).toEqual({
       isSubmitting: false,
@@ -149,7 +148,7 @@ describe("useForm hook tests", () => {
       isValid: true,
       isValidating: false
     });
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
     expect(result.current.uiState).toEqual({
       isSubmitting: false,
@@ -166,7 +165,7 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
+    act(() => api.addInput({ id: "test", value: "123" }));
     expect(result.current.inputValues).toEqual({ test: "123" });
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
@@ -179,7 +178,7 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
+    act(() => api.addInput({ id: "test", value: "123" }));
     const inputProps = result.current.inputs.test.getInputProps();
 
     expect(inputProps.id).toEqual("test");
@@ -190,8 +189,8 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
-    api.addInput({ id: "secondtest", value: "234" });
+    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => api.addInput({ id: "secondtest", value: "234" }));
 
     expect(result.current.inputValues).toEqual({
       secondtest: "234",
@@ -203,12 +202,12 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
+    act(() => api.addInput({ id: "test", value: "123" }));
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
     });
 
-    result.current.inputs.test.getInputProps().onFocus();
+    act(() => result.current.inputs.test.getInputProps().onFocus());
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: true }
     });
@@ -218,10 +217,10 @@ describe("useForm input tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
-    api.addInput({ id: "secondtest", value: "234" });
+    act(() => api.addInput({ id: "test", value: "123" }));
+    act(() => api.addInput({ id: "secondtest", value: "234" }));
 
-    renderHook(() => api.removeInput("test"));
+    act(() => api.removeInput("test"));
 
     expect(result.current.inputValues).toEqual({ secondtest: "234" });
     expect(Object.entries(result.current.inputs).length).toEqual(1);
@@ -238,15 +237,19 @@ describe("useForm input tests", () => {
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
     });
-    result.current.inputs.test.getInputProps().onChange({
-      target: { value: "234" }
-    });
+    act(() =>
+      result.current.inputs.test.getInputProps().onChange({
+        target: { value: "234" }
+      })
+    );
     expect(result.current.inputUiState).toEqual({
       test: { pristine: false, visited: false }
     });
-    result.current.inputs.test.getInputProps().onChange({
-      target: { value: "a" }
-    });
+    act(() =>
+      result.current.inputs.test.getInputProps().onChange({
+        target: { value: "a" }
+      })
+    );
     expect(result.current.inputUiState).toEqual({
       test: { pristine: true, visited: false }
     });
@@ -260,7 +263,7 @@ describe("useForm input validation tests", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
-    api.addInput({ id: "test", value: "123" });
+    act(() => api.addInput({ id: "test", value: "123" }));
 
     expect(result.current.formValidity).toEqual({});
   });
@@ -278,22 +281,27 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "",
-      validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-    });
-    await result.current.inputs.test.getInputProps().onBlur({
-      preventDefault: noop,
-      target: {
-        value: ""
-      }
-    });
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "",
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
+      })
+    );
+    act(
+      async () =>
+        await result.current.inputs.test.getInputProps().onBlur({
+          preventDefault: noop,
+          target: {
+            value: ""
+          }
+        })
+    );
     expect(result.current.formValidity).toEqual({
       test: { isValidating: true, value: "" }
     });
 
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.formValidity).toEqual({
@@ -314,22 +322,27 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "",
-      validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-    });
-    await result.current.inputs.test.getInputProps().onBlur({
-      preventDefault: noop,
-      target: {
-        value: ""
-      }
-    });
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "",
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
+      })
+    );
+    act(
+      async () =>
+        await result.current.inputs.test.getInputProps().onBlur({
+          preventDefault: noop,
+          target: {
+            value: ""
+          }
+        })
+    );
     expect(result.current.formValidity).toEqual({
       test: { isValidating: true, value: "" }
     });
 
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.formValidity).toEqual({
@@ -342,31 +355,35 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "",
-      validators: [
-        {
-          ...required,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    result.current.api.addInput({
-      id: "last",
-      value: "",
-      validators: [
-        {
-          ...required,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    renderHook(async () => {
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "",
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(() =>
+      result.current.api.addInput({
+        id: "last",
+        value: "",
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(async () => {
       await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.uiState).toEqual({
@@ -385,31 +402,35 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "abc",
-      validators: [
-        {
-          ...required,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    result.current.api.addInput({
-      id: "email",
-      value: "george@ofthejungle.com",
-      validators: [
-        {
-          ...email,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    renderHook(async () => {
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "abc",
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(() =>
+      result.current.api.addInput({
+        id: "email",
+        value: "george@ofthejungle.com",
+        validators: [
+          {
+            ...email,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(async () => {
       await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.uiState).toEqual({
@@ -428,15 +449,17 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "abc",
-      validators: [{ ...required, when: [validateInputEvents.onBlur] }]
-    });
-    renderHook(async () => {
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "abc",
+        validators: [{ ...required, when: [validateInputEvents.onBlur] }]
+      })
+    );
+    act(async () => {
       await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.uiState).toEqual({
@@ -458,37 +481,41 @@ describe("useForm input validation tests", () => {
 
     const customValidator = createValidator({
       validateFn: async ({ value }) => {
-        await new Promise(resolve => {
-          throw expectedError;
+        await new Promise((resolve, reject) => {
+          reject(expectedError);
         });
       },
       error: "CUSTOM_ASYNC_ERROR"
     });
 
-    result.current.api.addInput({
-      id: "test",
-      value: "abc",
-      validators: [
-        {
-          ...required,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    result.current.api.addInput({
-      id: "email",
-      value: "george@ofthejungle.com",
-      validators: [
-        {
-          ...customValidator,
-          when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-        }
-      ]
-    });
-    renderHook(async () => {
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "abc",
+        validators: [
+          {
+            ...required,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(() =>
+      result.current.api.addInput({
+        id: "email",
+        value: "george@ofthejungle.com",
+        validators: [
+          {
+            ...customValidator,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      })
+    );
+    act(async () => {
       await result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
 
     expect(result.current.uiState).toEqual({
@@ -524,41 +551,49 @@ describe("useForm input validation tests", () => {
       useForm({ id: "test" })
     );
 
-    result.current.api.addInput({
-      id: "test",
-      value: "12",
-      validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
-    });
-    await result.current.inputs.test.getInputProps().onBlur(
-      {
-        preventDefault: noop,
-        target: {
-          value: "12"
-        }
-      },
-      "12"
+    act(() =>
+      result.current.api.addInput({
+        id: "test",
+        value: "12",
+        validators: [{ ...customValidator, when: [validateInputEvents.onBlur] }]
+      })
     );
-    jest.advanceTimersByTime(50);
+    act(
+      async () =>
+        await result.current.inputs.test.getInputProps().onBlur(
+          {
+            preventDefault: noop,
+            target: {
+              value: "12"
+            }
+          },
+          "12"
+        )
+    );
+    act(() => jest.advanceTimersByTime(50));
     expect(result.current.formValidity).toEqual({
       test: { isValidating: true, value: "12" }
     });
 
-    await result.current.inputs.test.getInputProps().onBlur(
-      {
-        preventDefault: noop,
-        target: {
-          value: "1234"
-        }
-      },
-      "1234"
+    act(
+      async () =>
+        await result.current.inputs.test.getInputProps().onBlur(
+          {
+            preventDefault: noop,
+            target: {
+              value: "1234"
+            }
+          },
+          "1234"
+        )
     );
 
-    jest.advanceTimersByTime(50);
+    act(() => jest.advanceTimersByTime(50));
     expect(result.current.formValidity).toEqual({
       test: { isValidating: true, value: "1234" }
     });
 
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
     await waitForNextUpdate();
     expect(result.current.formValidity).toEqual({
       test: { field: "test", valid: true }

@@ -151,8 +151,6 @@ describe("mustBeTrue validator tests", () => {
   testCases.forEach(testCase => {
     it(`Should pass for case ${testCase.input}`, async () => {
       const result = await mustBeTrue.validate({ value: testCase.input });
-      // result.ariaProps = result.ariaProps.sort();
-      // testCase.expectedValue.ariaProps = testCase.expectedValue.ariaProps.sort();
       expect(result).toEqual(testCase.expectedValue);
     });
   });
@@ -325,9 +323,7 @@ describe("createValidator tests", () => {
       }
     ];
     testCases.forEach(async testCase => {
-      // jest.runAllTimers();
       const result = await customValidator.validate({ value: testCase.input });
-      // jest.runAllTimers();
       expect(result).toEqual(testCase.expectedValue);
     });
   });

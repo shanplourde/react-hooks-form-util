@@ -1,6 +1,6 @@
 {
   "name": "react-hooks-form-util",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Simple React hooks to create form functionality. The UI is left up to you",
   "main": "src/index.js",
   "dependencies": {

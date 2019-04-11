@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const getInputValue = ({ type, checked, value, options }) => {
   if (type === "checkbox") return checked;
   if (type === "select-multiple")
@@ -17,17 +15,12 @@ const getInputValue = ({ type, checked, value, options }) => {
   return value;
 };
 
-export const useInput = ({ id, value, props = {} }) => {
-  const [inputValue, setInputValue] = useState(value);
-  const [originalValue] = useState(value);
-  const [visited, setVisited] = useState(false);
-
+export const createInput = ({ id, value, props = {} }) => {
   const getSharedProps = () => ({
     id,
     ...props,
     onChange: (event, inputValue) => {
       const value = inputValue || getInputValue(event.target);
-      setInputValue(value);
       props.onChange && props.onChange({ event, id, value });
     },
     onBlur: (event, inputValue) => {
@@ -35,8 +28,7 @@ export const useInput = ({ id, value, props = {} }) => {
       props.onBlur && props.onBlur({ event, id, value });
     },
     onFocus: evt => {
-      setVisited(true);
-      props.onFocus && props.onFocus({ evt });
+      props.onFocus && props.onFocus({ evt, id, value });
     }
   });
 
@@ -54,17 +46,7 @@ export const useInput = ({ id, value, props = {} }) => {
 
   return {
     id,
-    value: inputValue,
-    api: {
-      setValue: val => {
-        setInputValue(val);
-        props.onChange && props.onChange({ id, value: val });
-      }
-    },
-    uiState: {
-      visited,
-      pristine: inputValue === originalValue
-    },
+    value,
     getInputProps,
     getCheckProps
   };

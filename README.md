@@ -7,11 +7,12 @@ This library supports the following:
 - Form state management
 - Form field validations
 - Form submission
+- Form field state management
 
 ## Features
 
 - Doesn't require you to develop functional React UI components - you can continue to use your class based components
-- Thoroughly unit tested
+- ~~Thoroughly~~ Somewhat unit tested 😃
 - Supports asynchronous validations on blur, on change, and on submit
 - Supports standard HTML inputs such as:
   - Text inputs (input type text, textareas)
@@ -20,11 +21,14 @@ This library supports the following:
   - Multi-selects
 - Supports custom components
 - Supports custom validations
+- Inputs support pristine and visited state
+- Dynamically add or remove form fields
+  to/from existing forms
 - Easy to get started!
 
 ## Motivation and inception
 
-See [my multi-part article series for background](https://medium.com/@shanplourde/react-hooks-designing-a-simple-forms-api-part-1-307b04bc6007). I took it upon myself to develop this forms library as a part of learning about [React hooks](https://reactjs.org/docs/hooks-intro.html) since I believe that hooks are a better way to develop React components.
+See [my multi-part article series for background](https://medium.com/@shanplourde/react-hooks-designing-a-simple-forms-api-part-1-307b04bc6007). I took it upon myself to develop this forms library as a part of learning a bit about [React hooks](https://reactjs.org/docs/hooks-intro.html) since I believe that hooks are a better way to develop React components.
 
 ## Demo
 
@@ -34,7 +38,7 @@ See [complete demo of all features](https://codesandbox.io/s/github/shanplourde/
 
 ## Installation
 
-This is not an NPM package at this time. Two install options you have:
+This is not an NPM package at this time. Two install options you can:
 
 - `npm install --save https://github.com/shanplourde/react-hooks-form-util#master`
 - Copy the source code under `src/components/form` into your project and run with it
@@ -43,7 +47,7 @@ This is not an NPM package at this time. Two install options you have:
 
 Call `useForm` and pass the form id along with your form's initial state.
 
-- `useForm` returns your form's current state under the `formValues` object.
+- `useForm` returns your form's current state under the `inputValues` object.
 - `useForm` returns `getFormProps`, which you need to expand onto your `form` tag
 - Your `onSubmit` gets called by the `useForm` hook,
   via the `getFormProps` that you expand onto your form tag
@@ -51,7 +55,7 @@ Call `useForm` and pass the form id along with your form's initial state.
 ```javascript
 import { useForm } from "form/use-form";
 
-const { formValues, getFormProps } = useForm({
+const { inputValues, getFormProps } = useForm({
   id: "settingsForm",
   initialState: {
     firstName: "George",
@@ -67,13 +71,13 @@ const { formValues, getFormProps } = useForm({
   }
 });
 
-console.log(formValues.firstName); // George
+console.log(inputValues.firstName); // George
 
 ///
 
-const onSubmit = async ({ evt, formValues }) => {
+const onSubmit = async ({ evt, inputValues }) => {
   await sleep(2000);
-  console.log("onSubmit was called", formValues);
+  console.log("onSubmit was called", inputValues);
 };
 
 ///
@@ -93,7 +97,7 @@ const onSubmit = async ({ evt, formValues }) => {
 ```javascript
 import { useForm } from "form/use-form";
 
-const { formValues, api } = useForm({
+const { inputValues, api } = useForm({
   id: "settingsForm",
   initialState: {
     firstName: "George",
@@ -111,13 +115,13 @@ const { formValues, api } = useForm({
 
 const firstNameInput = api.addInput({
   id: "firstName",
-  value: formValues.firstName
+  value: inputValues.firstName
 });
 
 //
 <div className="field-group">
   <label htmlFor={firstNameInput.id}>
-    First name {JSON.stringify(firstNameInput.uiState)} --{" "}
+    First name {JSON.stringify(inputUiState.firstName)} --{" "}
     {JSON.stringify(formValidity.firstName)} *
   </label>
   <input type="text" {...firstNameInput.getInputProps()} />
@@ -125,13 +129,25 @@ const firstNameInput = api.addInput({
 
 ```
 
+## Removing input fields
+
+- Call `api.removeInput` to remove an existing input field
+- Removing an input field removes all state associated with the
+  input, such validation state, input value, etc.
+- The **demo/dynamic-form** example shows how to add
+  and remove form fields dynamically to an already
+  rendered form
+
+```javascript
+/// Add your inputs, say an input with id = firstName
+
+api.removeInput("firstName");
+```
+
 ## Setting up validations
 
-- `useForm` returns a `formValidity` object. Each
-  key is an input id. Each value is an array of
-  validation errors
 - Pass a `validators` array to `api.addInput`
-- See validators.js for out of the box validations
+- See `validators.js` for out of the box validations
   (currently `required`, `email`, `mustBeTrue`)
 - For each validator, specify the `when` array, which
   indicates when validators fire. Validators
@@ -140,6 +156,9 @@ const firstNameInput = api.addInput({
   don't specify validity
 - Validity state is only set once a validation
   has run
+- `useForm` returns a `formValidity` object. Each
+  key is an input id. Each value is an array of
+  validation errors
 
 ```javascript
 import { validators, validateInputEvents } from "validators";
@@ -147,23 +166,23 @@ const { required, email } = validators;
 
 const { onBlur, onSubmit, onChange } = validateInputEvents;
 
-const { formValidity, formValues, api } = useForm({
+const { formValidity, inputValues, api } = useForm({
   ...
 });
 
 const firstNameInput = api.addInput({
   id: "firstName",
-  value: formValues.firstName,
+  value: inputValues.firstName,
   validators: [{ ...required, when: [onChange, onSubmit] }]
 });
 const lastNameInput = api.addInput({
   id: "lastName",
-  value: formValues.lastName,
+  value: inputValues.lastName,
   validators: [{ ...required, when: [onBlur, onSubmit] }]
 });
 const emailInput = api.addInput({
   id: "email",
-  value: formValues.email,
+  value: inputValues.email,
   validators: [
     { ...required, when: [onBlur, onSubmit] },
     {
@@ -192,7 +211,7 @@ import { createValidator, validateInputEvents } from "validators";
 
 const { onBlur, onSubmit } = validateInputEvents;
 
-const { formValidity, formValues, api } = useForm({
+const { formValidity, inputValues, api } = useForm({
   ...
 });
 
@@ -208,7 +227,7 @@ const customValidator = createValidator({
 
 const customInput = api.addInput({
   id: "custom",
-  value: formValues.custom,
+  value: inputValues.custom,
   validators: [{ ...customValidator, when: [onBlur, onSubmit] }]
 });
 
@@ -220,7 +239,7 @@ console.log(formValidity.custom); // returns validity state
 ## Validating one form field against another
 
 - When creating a custom validator with `createValidator`,
-  `validateFn` receives a `formValues` argument that allows you to
+  `validateFn` receives a `inputValues` argument that allows you to
   compare a form field against all other values in the current form
 
 ```javascript
@@ -230,7 +249,7 @@ const { onBlur, onSubmit } = validateInputEvents;
 
 const emailInput = api.addInput({
   id: "email",
-  value: formValues.email,
+  value: inputValues.email,
   validators: [
     { ...required, when: [onBlur, onSubmit] },
     {
@@ -241,15 +260,15 @@ const emailInput = api.addInput({
 });
 
 const confirmEmailValidator = createValidator({
-  validateFn: ({ value, formValues }) =>
-    value === formValues.email;
+  validateFn: ({ value, inputValues }) =>
+    value === inputValues.email;
   },
   error: "EMAILS_DO_NOT_MATCH"
 });
 
 const confirmEmailInput = api.addInput({
   id: "confirmEmail",
-  value: formValues.confirmEmail,
+  value: inputValues.confirmEmail,
   validators: [{ ...confirmEmailValidator, when: [onBlur, onSubmit] }]
 });
 
@@ -259,8 +278,7 @@ const confirmEmailInput = api.addInput({
 
 - Nothing else needs to be done for asynchronous validations, they're
   supported right out of the box
-- The custom validator shown below could be used the same way
-  as any other validator
+- The custom validator below is one example
 
 ```javascript
 const customValidator = createValidator({
@@ -273,25 +291,6 @@ const customValidator = createValidator({
   error: "CUSTOM_ASYNC_ERROR"
 });
 ```
-
-## Asynchronous validations
-
-### Consecutive or concurrent async validations - same input value
-
-- Each blur / change event on an input requests new asynchronous validations
-- However if an input's value is the same, the new validation request is
-  ignored, allowing the original validation request to complete. This should
-  optimize the user experience
-- In the future, this may be an option that you can opt out of, in case
-  you need an asynchronous validation that depends on other form field values
-
-### Consecutive or concurrent async validations - different input value
-
-- Each blur / change event on an input requests new asynchronous validations
-- When the latest input value is different from the previous, a new
-  asynchronous validation request is kicked off
-- Previously ran validation requests are ignored, but any asynchronous
-  activity they are performing is not cancelled
 
 ## Handling form submits
 
@@ -306,7 +305,7 @@ const customValidator = createValidator({
   is executed
 
 ```javascript
-const { getFormProps, formValues, uiState, formValidity } = useForm({
+const { getFormProps, inputValues, uiState, formValidity } = useForm({
   id: "settingsForm",
   initialState: {
     firstName: "George",
@@ -315,9 +314,9 @@ const { getFormProps, formValues, uiState, formValidity } = useForm({
   }
 });
 
-const handleOnSubmit = async ({ evt, formValues }) => {
+const handleOnSubmit = async ({ evt, inputValues }) => {
   await sleep(2000);
-  console.log("sample-form onSubmit, formValues", formValues);
+  console.log("sample-form onSubmit, inputValues", inputValues);
   if (uiState.isValid || formValidity.firstName.isValid) {
     // Guess we're ok with just first name being valid, let's submit our form
   }
@@ -345,6 +344,24 @@ was being validated or submitted.
 </div>
 ```
 
+## Tracking input visited and pristine state
+
+`useForm`'s `api.addInput` returns an input with a `uiState` property. You can use this to get the input's visited and pristine state.
+
+`visited` is set to true whenever an input receives focus.
+
+`pristine` is set to false whenever an input's value changes from its original value. `pristine` can be set to `false`, then `true` should the user change the input value back to its original value.
+
+```javascript
+const firstNameInput = api.addInput({
+  id: "firstName",
+  value: inputValues.firstName,
+  validators: [{ ...required, when: [onChange, onSubmit] }]
+});
+
+console.log(firstNameInput.uiState); // { visited: false, pristine: true }
+```
+
 ## Error handling
 
 ### Custom form `onSubmit` errors
@@ -358,3 +375,26 @@ was being validated or submitted.
   is set to `isValue = true`, and a property
   called `undeterminedValidations` is set that includes the
   validation name (error key), and error details
+
+## Asynchronous validation behaviour
+
+### Consecutive or concurrent async validations - same input value
+
+- Each blur / change event on an input requests new asynchronous validations
+- However if an input's value is the same, the new validation request is
+  ignored, allowing the original validation request to complete. This should
+  optimize the user experience
+- In the future, this may be an option that you can opt out of, in case
+  you need an asynchronous validation that depends on other form field values
+
+### Consecutive or concurrent async validations - different input value
+
+- Each blur / change event on an input requests new asynchronous validations
+- When the latest input value is different from the previous, a new
+  asynchronous validation request is kicked off
+- Previously ran validation requests are ignored, but any asynchronous
+  activity they are performing is not cancelled
+
+## Contributing, comments, etc.
+
+Feel free to [open an issue](https://github.com/shanplourde/react-hooks-form-util/issues) to raise questions, bugs, suggestions, etc.

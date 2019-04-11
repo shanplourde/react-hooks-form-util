@@ -209,8 +209,8 @@ describe("Custom validator tests", () => {
 
   it("Should be able to create a custom validator that can validate success across multiple form fields", async () => {
     const customValidator = createValidator({
-      validateFn: ({ value, formValues }) =>
-        (value || "").length > 2 && formValues.formField === "formFieldValue",
+      validateFn: ({ value, inputValues }) =>
+        (value || "").length > 2 && inputValues.formField === "formFieldValue",
       error: "CUSTOM_ERROR"
     });
 
@@ -225,7 +225,7 @@ describe("Custom validator tests", () => {
       validators,
       eventType: validateInputEvents.onBlur,
       value: "abcd",
-      formValues: {
+      inputValues: {
         formField: "formFieldValue"
       }
     });
@@ -237,8 +237,8 @@ describe("Custom validator tests", () => {
 
   it("Should be able to create a custom validator that can validate error across multiple form fields", async () => {
     const customValidator = createValidator({
-      validateFn: ({ value, formValues }) =>
-        (value || "").length > 2 && formValues.formField === "foo",
+      validateFn: ({ value, inputValues }) =>
+        (value || "").length > 2 && inputValues.formField === "foo",
       error: "CUSTOM_ERROR"
     });
 
@@ -253,7 +253,7 @@ describe("Custom validator tests", () => {
       validators,
       eventType: validateInputEvents.onBlur,
       value: "abcd",
-      formValues: {
+      inputValues: {
         formField: "formFieldValue"
       }
     });

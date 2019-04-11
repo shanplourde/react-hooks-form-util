@@ -13,7 +13,7 @@ export const runValidators = async ({
   validators,
   eventType,
   value,
-  formValues
+  inputValues
 }) => {
   const validationResults = [];
   let isValid = true;
@@ -23,7 +23,7 @@ export const runValidators = async ({
   for (let i = 0; i < filteredValidators.length; i++) {
     const validator = filteredValidators[i];
     if (isValid) {
-      const validationResult = await validator.validate({ value, formValues });
+      const validationResult = await validator.validate({ value, inputValues });
       if (!validationResult.valid && !validationResult.undeterminedValidation)
         isValid = false;
       validationResults.push(validationResult);
@@ -68,9 +68,9 @@ export const runValidators = async ({
  */
 export const createValidator = ({ validateFn, error = "ERROR_KEY" }) => {
   return {
-    validate: async ({ value, formValues }) => {
+    validate: async ({ value, inputValues }) => {
       try {
-        const isValid = await validateFn({ value, formValues });
+        const isValid = await validateFn({ value, inputValues });
         if (typeof isValid === "boolean" && isValid) {
           return { valid: true };
         }
@@ -91,7 +91,7 @@ const validators = {};
  * A required field validator
  */
 validators.required = createValidator({
-  validateFn: ({ value, formValues }) =>
+  validateFn: ({ value, inputValues }) =>
     (value !== null &&
       value !== undefined &&
       (typeof value === "object" && value.length === undefined)) ||
@@ -103,7 +103,7 @@ validators.required = createValidator({
  * Useful for checkboxes that must be checked
  */
 validators.mustBeTrue = createValidator({
-  validateFn: ({ value, formValues }) =>
+  validateFn: ({ value, inputValues }) =>
     value !== null && value !== undefined && value === true,
   error: "MUST_BE_TRUE"
 });
@@ -112,7 +112,7 @@ validators.mustBeTrue = createValidator({
  * An email validator
  */
 validators.email = createValidator({
-  validateFn: ({ value, formValues }) => {
+  validateFn: ({ value, inputValues }) => {
     const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return !value || re.test(String(value).toLowerCase());
   },

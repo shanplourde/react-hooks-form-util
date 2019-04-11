@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useInput } from "./use-input";
+import { createInput } from "./input";
 import { runValidators, validateInputEvents } from "./validators";
 
 export const defaultFormProps = {
@@ -7,7 +7,7 @@ export const defaultFormProps = {
 };
 
 export const useForm = ({ id, initialState = {} }) => {
-  const [formValues] = useState({
+  const [inputValues] = useState({
     ...initialState
   });
   const [formValidity, setFormValidity] = useState({});
@@ -19,6 +19,9 @@ export const useForm = ({ id, initialState = {} }) => {
     isSubmitting: false
   });
   const [inputs] = useState({});
+  const [inputUiState, setInputUiState] = useState({});
+  const [originalValues] = useState({});
+
   const validationRuntimeMap = useRef(new Map());
 
   const validateAll = async eventType => {
@@ -32,7 +35,7 @@ export const useForm = ({ id, initialState = {} }) => {
           validators: validators[field],
           eventType,
           value: inputs[field].value,
-          formValues
+          inputValues
         })
       );
     });
@@ -67,7 +70,7 @@ export const useForm = ({ id, initialState = {} }) => {
       };
       setUiState(newUiState);
       if (props.onSubmit) {
-        await props.onSubmit({ evt, formValues });
+        await props.onSubmit({ evt, inputValues });
       }
     } finally {
       setUiState({ ...newUiState, isSubmitting: false });
@@ -81,7 +84,12 @@ export const useForm = ({ id, initialState = {} }) => {
   });
 
   const onInputChange = ({ event, id, value }) => {
-    formValues[id] = value;
+    inputValues[id] = value;
+    setInputUiState({
+      ...inputUiState,
+      [id]: { ...inputUiState[id], pristine: value === originalValues[id] }
+    });
+
     runInputValidations({
       id,
       value,
@@ -145,7 +153,7 @@ export const useForm = ({ id, initialState = {} }) => {
         eventType: eventType,
         value,
         runId: timeStamp,
-        formValues
+        inputValues
       });
 
       if (!isCurrentRunLatest()) return;
@@ -169,6 +177,13 @@ export const useForm = ({ id, initialState = {} }) => {
     });
   };
 
+  const onInputFocus = ({ event, id }) => {
+    setInputUiState({
+      ...inputUiState,
+      [id]: { ...inputUiState[id], visited: true }
+    });
+  };
+
   const isBlurWithinRadioGroup = (event, id) =>
     event.relatedTarget && event.relatedTarget.getAttribute("name") === id;
 
@@ -189,16 +204,25 @@ export const useForm = ({ id, initialState = {} }) => {
     validators: inputValidators = [],
     inputProps = {
       onChange: onInputChange,
-      onBlur: onInputBlur
+      onBlur: onInputBlur,
+      onFocus: onInputFocus
     }
   }) => {
-    const input = useInput({
+    originalValues[id] =
+      typeof originalValues[id] === "undefined" ? value : originalValues[id];
+    inputValues[id] =
+      typeof inputValues[id] === "undefined" ? value : inputValues[id];
+
+    const input = createInput({
       id,
-      value,
+      value: inputValues[id],
       props: inputProps
     });
     inputs[id] = input;
-    formValues[id] = value;
+    inputUiState[id] = inputUiState[id] || {
+      pristine: true,
+      visited: false
+    };
     validators[id] = inputValidators;
     return input;
   };
@@ -211,22 +235,36 @@ export const useForm = ({ id, initialState = {} }) => {
       inputProps: {
         ...inputProps,
         onChange: onInputChange,
-        onBlur: onRadioGroupBlur
+        onBlur: onRadioGroupBlur,
+        onFocus: onInputFocus
       }
     });
     return input;
   };
 
+  const removeInput = id => {
+    delete inputs[id];
+    delete inputUiState[id];
+    delete validators[id];
+    delete formValidity[id];
+    delete inputValues[id];
+    delete originalValues[id];
+
+    setInputUiState(inputUiState);
+  };
+
   return {
     id,
     getFormProps,
-    formValues,
     formValidity,
     uiState,
     inputs,
+    inputValues,
+    inputUiState,
     api: {
       addInput,
-      addRadioGroup
+      addRadioGroup,
+      removeInput
     }
   };
 };

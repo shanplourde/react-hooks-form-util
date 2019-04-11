@@ -9,6 +9,9 @@ function Home() {
         <li>
           <Link to="kitchen-sink">Kitchen sink sample</Link>
         </li>
+        <li>
+          <Link to="dynamic-form">Dynamic form example</Link>
+        </li>
       </ul>
     </div>
   );

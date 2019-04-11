@@ -46,7 +46,9 @@ export const useForm = ({ id, initialState = {} }) => {
     };
     setUiState(newUiState);
 
-    const results = await Promise.all(promises);
+    const results = await Promise.all(promises).catch(() => {
+      // Do nothing, validation library handles errors.
+    });
     results.forEach(result => {
       formValidity[result.field] = result;
     });
@@ -150,23 +152,27 @@ export const useForm = ({ id, initialState = {} }) => {
 
       if (!isCurrentRunLatest()) return;
 
-      const validationResults = await runValidators({
-        field: id,
-        validators: validators[id],
-        eventType: eventType,
-        value,
-        runId: timeStamp,
-        inputValues
-      });
+      try {
+        const validationResults = await runValidators({
+          field: id,
+          validators: validators[id],
+          eventType: eventType,
+          value,
+          runId: timeStamp,
+          inputValues
+        });
 
-      if (!isCurrentRunLatest()) return;
+        if (!isCurrentRunLatest()) return;
 
-      formValidityAsyncState.current = {
-        ...formValidityAsyncState.current,
-        [id]: validationResults
-      };
+        formValidityAsyncState.current = {
+          ...formValidityAsyncState.current,
+          [id]: validationResults
+        };
 
-      if (!isCurrentRunLatest()) return;
+        if (!isCurrentRunLatest()) return;
+      } catch {
+        // Do nothing, validation library handles errors
+      }
       setFormValidity(formValidityAsyncState.current);
     }
   };

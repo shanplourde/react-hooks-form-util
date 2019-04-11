@@ -1,12 +1,6 @@
 # react-hooks-form-util
 
-[![Build Status](https://travis-ci.com/shanplourde/react-hooks-form-util.svg?branch=master)](https://travis-ci.com/shanplourde/react-hooks-form-util)
-
-[![codecov](https://codecov.io/gh/shanplourde/react-hooks-form-util/branch/master/graph/badge.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util)
-
-[![dependencies](https://david-dm.org/shanplourde/react-hooks-form-util.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util)
-
-[![devDependencies](https://david-dm.org/shanplourde/react-hooks-form-util/dev-status.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util)
+[![Build Status](https://travis-ci.com/shanplourde/react-hooks-form-util.svg?branch=master)](https://travis-ci.com/shanplourde/react-hooks-form-util) [![codecov](https://codecov.io/gh/shanplourde/react-hooks-form-util/branch/master/graph/badge.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util) [![dependencies](https://david-dm.org/shanplourde/react-hooks-form-util.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util) [![devDependencies](https://david-dm.org/shanplourde/react-hooks-form-util/dev-status.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util)
 
 `react-hooks-form-util` is a simple to use forms API based on React hooks. It only provides the functional aspects of forms. It's up to you to develop your UI as you see fit, and simply integrate your UI with the hooks.
 

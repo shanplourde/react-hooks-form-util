@@ -457,48 +457,48 @@ describe("runValidators tests", () => {
       valid: false
     });
   });
-  // it("Continues handling multiple-undetermined validations without stopping at the first one", async () => {
-  //   const error1 = new Error("oh no1");
-  //   const customValidator = createValidator({
-  //     validateFn: ({ value }) => {
-  //       throw error1;
-  //     },
-  //     error: "CUSTOM_ASYNC_ERROR"
-  //   });
-  //   const error2 = new Error("oh no2");
-  //   const customValidator2 = createValidator({
-  //     validateFn: ({ value }) => {
-  //       throw error2;
-  //     },
-  //     error: "CUSTOM_ASYNC_ERROR_2"
-  //   });
-  //   const validators = [
-  //     {
-  //       ...required,
-  //       when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-  //     },
-  //     {
-  //       ...customValidator,
-  //       when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-  //     },
-  //     {
-  //       ...customValidator2,
-  //       when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
-  //     }
-  //   ];
-  //   const validationResults = await runValidators({
-  //     field: "test",
-  //     validators,
-  //     eventType: validateInputEvents.onBlur,
-  //     value: "a"
-  //   });
-  //   expect(validationResults).toEqual({
-  //     field: "test",
-  //     undeterminedValidations: [
-  //       { additional: error1, error: "CUSTOM_ASYNC_ERROR" },
-  //       { additional: error2, error: "CUSTOM_ASYNC_ERROR_2" }
-  //     ],
-  //     valid: true
-  //   });
-  // });
+  it("Continues handling multiple-undetermined validations without stopping at the first one", async () => {
+    const error1 = new Error("oh no1");
+    const customValidator = createValidator({
+      validateFn: ({ value }) => {
+        throw error1;
+      },
+      error: "CUSTOM_ASYNC_ERROR"
+    });
+    const error2 = new Error("oh no2");
+    const customValidator2 = createValidator({
+      validateFn: ({ value }) => {
+        throw error2;
+      },
+      error: "CUSTOM_ASYNC_ERROR_2"
+    });
+    const validators = [
+      {
+        ...required,
+        when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+      },
+      {
+        ...customValidator,
+        when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+      },
+      {
+        ...customValidator2,
+        when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+      }
+    ];
+    const validationResults = await runValidators({
+      field: "test",
+      validators,
+      eventType: validateInputEvents.onBlur,
+      value: "a"
+    });
+    expect(validationResults).toEqual({
+      field: "test",
+      undeterminedValidations: [
+        { additional: error1, error: "CUSTOM_ASYNC_ERROR" },
+        { additional: error2, error: "CUSTOM_ASYNC_ERROR_2" }
+      ],
+      valid: true
+    });
+  });
 });

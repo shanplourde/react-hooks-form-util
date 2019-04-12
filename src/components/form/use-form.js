@@ -11,7 +11,6 @@ export const useForm = ({ id, initialState = {} }) => {
     ...initialState
   });
   const [formValidity, setFormValidity] = useState({});
-  const formValidityAsyncState = useRef({});
   const [validators] = useState({});
   const [uiState, setUiState] = useState({
     isValidating: false,
@@ -134,22 +133,19 @@ export const useForm = ({ id, initialState = {} }) => {
       }
       if (!isCurrentRunLatest()) return;
 
-      formValidityAsyncState.current = { ...formValidity };
-      formValidity[id] = {
-        ...formValidityAsyncState.current[id],
-        isValidating: true,
-        value
-      };
+      setFormValidity(current => ({
+        ...current,
+        [id]: { isValidating: true, value }
+      }));
 
       if (!isCurrentRunLatest()) return;
 
-      formValidityAsyncState.current = {
-        ...formValidityAsyncState.current,
-        [id]: { ...formValidityAsyncState[id], isValidating: true, value }
-      };
-
       if (!isCurrentRunLatest()) return;
-      setFormValidity(formValidityAsyncState.current);
+
+      setFormValidity(current => ({
+        ...current,
+        [id]: { ...current[id], isValidating: true, value }
+      }));
 
       if (!isCurrentRunLatest()) return;
 
@@ -165,16 +161,10 @@ export const useForm = ({ id, initialState = {} }) => {
 
         if (!isCurrentRunLatest()) return;
 
-        formValidityAsyncState.current = {
-          ...formValidityAsyncState.current,
-          [id]: validationResults
-        };
-
-        if (!isCurrentRunLatest()) return;
+        setFormValidity(current => ({ ...current, [id]: validationResults }));
       } catch {
         // Do nothing, validation library handles errors
       }
-      setFormValidity(formValidityAsyncState.current);
     }
   };
 

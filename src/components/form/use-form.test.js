@@ -244,6 +244,32 @@ describe("useForm input tests", () => {
     });
   });
 
+  it("shouldn't break if attempting to remove an unknown input", () => {
+    const { result } = renderHook(() => useForm({ id: "test" }));
+    const { api } = result.current;
+
+    act(() => {
+      api.addInput({ id: "test", value: "123" });
+    });
+    act(() => {
+      api.addInput({ id: "secondtest", value: "234" });
+    });
+
+    act(() => {
+      api.removeInput("doesn't exist");
+    });
+
+    expect(result.current.inputValues).toEqual({
+      secondtest: "234",
+      test: "123"
+    });
+    expect(Object.entries(result.current.inputs).length).toEqual(2);
+    expect(result.current.inputUiState).toEqual({
+      secondtest: { pristine: true, visited: false },
+      test: { pristine: true, visited: false }
+    });
+  });
+
   it("should change pristine property when value changes", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
@@ -528,7 +554,7 @@ describe("useForm input validation tests", () => {
         ]
       });
     });
-    act(async () => {
+    act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     // await waitForNextUpdate();

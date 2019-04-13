@@ -12,6 +12,11 @@ function Home() {
         <li>
           <Link to="dynamic-form">Dynamic form example</Link>
         </li>
+        <li>
+          <Link to="reward-early-validate-late">
+            Reward early validate late example
+          </Link>
+        </li>
       </ul>
     </div>
   );

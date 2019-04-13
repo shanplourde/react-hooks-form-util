@@ -4,7 +4,8 @@ import { useForm } from "../../components/form/use-form";
 import {
   validators,
   createValidator,
-  validateInputEvents
+  validateInputEvents,
+  evaluateConditions
 } from "../../components/form/validators";
 import { sleep } from "../utils/async";
 
@@ -22,7 +23,7 @@ function KitchenSink(props) {
   } = useForm({
     id: "kitchenSinkForm",
     initialState: {
-      firstName: "George",
+      firstName: "",
       lastName: "OfTheJungle",
       email: "george@thejungle.com",
       confirmEmail: "george@thejungle.com",
@@ -38,8 +39,26 @@ function KitchenSink(props) {
   const firstNameInput = api.addInput({
     id: "firstName",
     value: inputValues.firstName,
-    validators: [{ ...required, when: [onChange, onSubmit] }]
+    validators: [
+      {
+        ...required,
+        when: [
+          {
+            eventType: onChange,
+            evaluateCondition: evaluateConditions.rewardEarlyValidateLate
+          },
+          onBlur,
+          onSubmit
+        ]
+      }
+    ]
   });
+
+  // (whenItem.checkWhenValid ||
+  //   (!whenItem.checkWhenValid &&
+  //     (typeof formValidity[id] === "undefined" ||
+  //       formValidity[id].valid !== true))))
+
   const lastNameInput = api.addInput({
     id: "lastName",
     value: inputValues.lastName,

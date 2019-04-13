@@ -1,6 +1,11 @@
 import { renderHook, cleanup, act } from "react-hooks-testing-library";
 import { useForm } from "./use-form";
-import { validators, createValidator, validateInputEvents } from "./validators";
+import {
+  validators,
+  createValidator,
+  validateInputEvents,
+  evaluateConditions
+} from "./validators";
 
 const { required, email } = validators;
 const noop = () => {};
@@ -63,7 +68,6 @@ describe("useForm hook tests", () => {
     // https://github.com/facebook/react/issues/14769
     act(() => formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
-    act(() => jest.runAllTimers());
     await waitForNextUpdate();
     expect(onSubmit).toHaveBeenCalled();
     expect(result.current.uiState).toEqual({
@@ -641,5 +645,47 @@ describe("useForm input validation tests", () => {
     expect(result.current.formValidity).toEqual({
       test: { field: "test", valid: true }
     });
+  });
+
+  it("should validate input when evaluateCondition.rewardEarlyValidateLate is set and input current state is not valid", async () => {
+    // const { result, waitForNextUpdate } = renderHook(() =>
+    //   useForm({ id: "test" })
+    // );
+    // act(() => {
+    //   result.current.api.addInput({
+    //     id: "test",
+    //     value: "",
+    //     validators: [
+    //       {
+    //         ...required,
+    //         when: [
+    //           validateInputEvents.onBlur,
+    //           {
+    //             eventType: validateInputEvents.onChange,
+    //             evaluateCondition: evaluateConditions.rewardEarlyValidateLate
+    //           }
+    //         ]
+    //       }
+    //     ]
+    //   });
+    // });
+    // act(() => {
+    //   result.current.inputs.test.getInputProps().onBlur({
+    //     preventDefault: noop,
+    //     target: {
+    //       value: ""
+    //     }
+    //   });
+    // });
+    // await waitForNextUpdate();
+    // console.log("formValidity", result.current.formValidity);
+    // act(async () => {
+    //   await result.current.inputs.test.getInputProps().onChange({
+    //     target: { value: "234" }
+    //   });
+    // });
+    // expect(result.current.formValidity).toEqual({
+    //   test: { errors: ["REQUIRED"], field: "test", valid: false }
+    // });
   });
 });

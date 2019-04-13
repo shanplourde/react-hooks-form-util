@@ -115,7 +115,14 @@ export const useForm = ({ id, initialState = {} }) => {
   const runInputValidations = async ({ id, value, eventType, timeStamp }) => {
     validationRuntimeMap.current.set(id, timeStamp);
     const filteredValidators = validators[id].filter(validator => {
-      return validator.when.some(whenItem => whenItem === eventType);
+      return validator.when.some(
+        whenItem =>
+          whenItem === eventType ||
+          (typeof whenItem === "object" &&
+            whenItem.eventType === eventType &&
+            whenItem.evaluateCondition &&
+            whenItem.evaluateCondition({ id, formValidity, inputValues }))
+      );
     });
     if (filteredValidators.length === 0) return;
 
@@ -137,8 +144,6 @@ export const useForm = ({ id, initialState = {} }) => {
         ...current,
         [id]: { isValidating: true, value }
       }));
-
-      if (!isCurrentRunLatest()) return;
 
       if (!isCurrentRunLatest()) return;
 

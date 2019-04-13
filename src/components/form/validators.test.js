@@ -2,7 +2,8 @@ import {
   createValidator,
   validators,
   runValidators,
-  validateInputEvents
+  validateInputEvents,
+  evaluateConditions
 } from "./validators";
 
 const { email, required, mustBeTrue } = validators;
@@ -500,5 +501,47 @@ describe("runValidators tests", () => {
       ],
       valid: true
     });
+  });
+});
+
+describe("evaluateConditions tests", () => {
+  it("Determines that a validator should be evaluated if current validity is false", () => {
+    const id = "test";
+    const inputValues = { test: "foo" };
+    const formValidity = { test: { field: "test", valid: false } };
+
+    expect(
+      evaluateConditions.rewardEarlyValidateLate({
+        id,
+        inputValues,
+        formValidity
+      })
+    ).toEqual(true);
+  });
+  it("Determines that a validator should not be evaluated if current validity is true", () => {
+    const id = "test";
+    const inputValues = { test: "foo" };
+    const formValidity = { test: { field: "test", valid: true } };
+
+    expect(
+      evaluateConditions.rewardEarlyValidateLate({
+        id,
+        inputValues,
+        formValidity
+      })
+    ).toEqual(false);
+  });
+  it("Determines that a validator should not be evaluated if current validity is undefined", () => {
+    const id = "test";
+    const inputValues = { test: "foo" };
+    const formValidity = {};
+
+    expect(
+      evaluateConditions.rewardEarlyValidateLate({
+        id,
+        inputValues,
+        formValidity
+      })
+    ).toEqual(false);
   });
 });

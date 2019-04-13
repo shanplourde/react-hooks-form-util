@@ -18,7 +18,11 @@ export const runValidators = async ({
   const validationResults = [];
   let isValid = true;
   const filteredValidators = validators.filter(validator => {
-    return validator.when.some(whenItem => whenItem === eventType);
+    return validator.when.some(
+      whenItem =>
+        whenItem === eventType ||
+        (typeof whenItem === "object" && whenItem.eventType === eventType)
+    );
   });
   for (let i = 0; i < filteredValidators.length; i++) {
     const validator = filteredValidators[i];
@@ -119,4 +123,17 @@ validators.email = createValidator({
   error: "INVALID_EMAIL"
 });
 
+const evaluateConditions = {};
+
+evaluateConditions.rewardEarlyValidateLate = ({
+  id,
+  inputValues,
+  formValidity
+}) => {
+  return (
+    typeof formValidity[id] !== "undefined" && formValidity[id].valid !== true
+  );
+};
+
 export { validators };
+export { evaluateConditions };

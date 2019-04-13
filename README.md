@@ -294,6 +294,73 @@ const customValidator = createValidator({
 });
 ```
 
+## Deciding when validators should fire
+
+- When defining your `when` condition for validators, you can choose from the events `onBlur`, `onChange`, and `onSubmit`
+- In addition, you can define your own custom expression with
+  `evaluateCondition` that decides if your validator should trigger
+- Predefined evaluateConditions:
+  - `evaluateConditions.rewardEarlyValidateLate`: Returns true if the
+    `formValidity` for the given input is false
+- evaluateCondition functions receive `{ id, inputValues, formValidity }` as
+  - `id` is the given input's id
+  - `inputValues` are the given form's input values
+  - `formValidity` is the current form's input validity
+
+```javascript
+import { validators, validateInputEvents, evaluateConditions } from "validators";
+const { required, email } = validators;
+
+const { onBlur, onSubmit, onChange } = validateInputEvents;
+
+const { formValidity, inputValues, api } = useForm({
+  ...
+});
+
+// Example of using the stock evaluateConditions.rewardEarlyValidateLate
+// evaluator with the onChange event:
+const firstNameInput = api.addInput({
+  id: "firstName",
+  value: inputValues.firstName,
+  validators: [
+    {
+      ...required,
+      when: [
+        {
+          eventType: onChange,
+          evaluateCondition: evaluateConditions.rewardEarlyValidateLate
+        },
+        onBlur,
+        onSubmit
+      ]
+    }
+  ]
+});
+
+// Example of using a custom evaluateCondition
+// evaluator with the onChange event. evaluateCondition
+// returns true, so the validation is always evaluated
+// onChange
+const firstNameInput = api.addInput({
+  id: "firstName",
+  value: inputValues.firstName,
+  validators: [
+    {
+      ...required,
+      when: [
+        {
+          eventType: onChange,
+          evaluateCondition: ({ id, inputValues, formValidity }) => true
+        },
+        onBlur,
+        onSubmit
+      ]
+    }
+  ]
+});
+
+```
+
 ## Handling form submits
 
 - useForm does not block form submits if the form is

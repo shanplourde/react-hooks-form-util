@@ -7,19 +7,19 @@ export const defaultFormProps = {
 };
 
 export const useForm = ({ id, initialState = {} }) => {
-  const [inputValues] = useState({
+  const inputValues = useRef({
     ...initialState
   });
   const [formValidity, setFormValidity] = useState({});
-  const [validators] = useState({});
+  const validators = useRef({});
   const [uiState, setUiState] = useState({
     isValidating: false,
     isValid: true,
     isSubmitting: false
   });
-  const [inputs] = useState({});
+  const inputs = useRef({});
   const [inputUiState, setInputUiState] = useState({});
-  const [originalValues] = useState({});
+  const originalValues = useRef({});
 
   const validationRuntimeMap = useRef(new Map());
 
@@ -27,14 +27,14 @@ export const useForm = ({ id, initialState = {} }) => {
     const promises = [];
     let newUiState = { ...uiState };
 
-    Object.keys(validators).forEach(async field => {
+    Object.keys(validators.current).forEach(async field => {
       promises.push(
         runValidators({
           field,
-          validators: validators[field],
+          validators: validators.current[field],
           eventType,
-          value: inputs[field].value,
-          inputValues
+          value: inputs.current[field].value,
+          inputValues: inputValues.current
         })
       );
     });
@@ -71,7 +71,7 @@ export const useForm = ({ id, initialState = {} }) => {
       };
       setUiState(newUiState);
       if (props.onSubmit) {
-        await props.onSubmit({ evt, inputValues });
+        await props.onSubmit({ evt, inputValues: inputValues.current });
       }
     } catch (e) {
       setUiState({ ...newUiState, isSubmitting: false });
@@ -89,10 +89,13 @@ export const useForm = ({ id, initialState = {} }) => {
   });
 
   const onInputChange = ({ event, id, value }) => {
-    inputValues[id] = value;
+    inputValues.current[id] = value;
     setInputUiState({
       ...inputUiState,
-      [id]: { ...inputUiState[id], pristine: value === originalValues[id] }
+      [id]: {
+        ...inputUiState[id],
+        pristine: value === originalValues.current[id]
+      }
     });
 
     runInputValidations({
@@ -114,19 +117,23 @@ export const useForm = ({ id, initialState = {} }) => {
 
   const runInputValidations = async ({ id, value, eventType, timeStamp }) => {
     validationRuntimeMap.current.set(id, timeStamp);
-    const filteredValidators = validators[id].filter(validator => {
+    const filteredValidators = validators.current[id].filter(validator => {
       return validator.when.some(
         whenItem =>
           whenItem === eventType ||
           (typeof whenItem === "object" &&
             whenItem.eventType === eventType &&
             whenItem.evaluateCondition &&
-            whenItem.evaluateCondition({ id, formValidity, inputValues }))
+            whenItem.evaluateCondition({
+              id,
+              formValidity,
+              inputValues: inputValues.current
+            }))
       );
     });
     if (filteredValidators.length === 0) return;
 
-    if (validators[id]) {
+    if (validators.current[id]) {
       const isCurrentRunLatest = () =>
         isCurrentValidationRunLatest(
           validationRuntimeMap.current,
@@ -157,11 +164,11 @@ export const useForm = ({ id, initialState = {} }) => {
       try {
         const validationResults = await runValidators({
           field: id,
-          validators: validators[id],
+          validators: validators.current[id],
           eventType: eventType,
           value,
           runId: timeStamp,
-          inputValues
+          inputValues: inputValues.current
         });
 
         if (!isCurrentRunLatest()) return;
@@ -213,22 +220,26 @@ export const useForm = ({ id, initialState = {} }) => {
       onFocus: onInputFocus
     }
   }) => {
-    originalValues[id] =
-      typeof originalValues[id] === "undefined" ? value : originalValues[id];
-    inputValues[id] =
-      typeof inputValues[id] === "undefined" ? value : inputValues[id];
+    originalValues.current[id] =
+      typeof originalValues.current[id] === "undefined"
+        ? value
+        : originalValues.current[id];
+    inputValues.current[id] =
+      typeof inputValues.current[id] === "undefined"
+        ? value
+        : inputValues.current[id];
 
     const input = createInput({
       id,
-      value: inputValues[id],
+      value: inputValues.current[id],
       props: inputProps
     });
-    inputs[id] = input;
+    inputs.current[id] = input;
     inputUiState[id] = inputUiState[id] || {
       pristine: true,
       visited: false
     };
-    validators[id] = inputValidators;
+    validators.current[id] = inputValidators;
     return input;
   };
 
@@ -248,12 +259,12 @@ export const useForm = ({ id, initialState = {} }) => {
   };
 
   const removeInput = id => {
-    delete inputs[id];
+    delete inputs.current[id];
     delete inputUiState[id];
-    delete validators[id];
+    delete validators.current[id];
     delete formValidity[id];
-    delete inputValues[id];
-    delete originalValues[id];
+    delete inputValues.current[id];
+    delete originalValues.current[id];
 
     setInputUiState(inputUiState);
   };
@@ -263,8 +274,8 @@ export const useForm = ({ id, initialState = {} }) => {
     getFormProps,
     formValidity,
     uiState,
-    inputs,
-    inputValues,
+    inputs: inputs.current,
+    inputValues: inputValues.current,
     inputUiState,
     api: {
       addInput,

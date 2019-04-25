@@ -166,7 +166,6 @@ export const useForm = ({ id, initialState = {}, validationSchema = {} }) => {
       if (!isCurrentRunLatest()) return;
 
       try {
-        console.log("here i is", validationSchema, id);
         const validationResults = await runValidators({
           field: id,
           validators: validators.current[id],

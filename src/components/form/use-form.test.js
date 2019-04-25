@@ -1,13 +1,13 @@
 import { renderHook, cleanup, act } from "react-hooks-testing-library";
 import { useForm } from "./use-form";
+import * as yup from "yup";
 import {
   validators,
   createValidator,
   validateInputEvents,
   evaluateConditions
 } from "./validators";
-
-const { required, email } = validators;
+const { required, email, schema } = validators;
 const noop = () => {};
 
 beforeEach(() => {
@@ -274,7 +274,7 @@ describe("useForm input tests", () => {
     });
   });
 
-  it("should change pristine property when value changes", () => {
+  it("c change pristine property when value changes", () => {
     const { result } = renderHook(() => useForm({ id: "test" }));
     const { api } = result.current;
 
@@ -443,6 +443,85 @@ describe("useForm input validation tests", () => {
     expect(result.current.formValidity).toEqual({
       last: { errors: ["REQUIRED"], field: "last", valid: false },
       test: { errors: ["REQUIRED"], field: "test", valid: false }
+    });
+  });
+
+  it("should be able to define a schema and validate form on submit", async () => {
+    const contactSchema = yup.object({
+      firstName: yup
+        .string()
+        .required()
+        .min(3),
+      lastName: yup
+        .string()
+        .required()
+        .min(10),
+      email: yup
+        .string()
+        .email()
+        .required()
+    });
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test", validationSchema: contactSchema })
+    );
+
+    act(() => {
+      result.current.api.addInput({
+        id: "firstName",
+        value: "X",
+        validators: [
+          {
+            ...schema,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      });
+    });
+    act(() => {
+      result.current.api.addInput({
+        id: "lastName",
+        value: "ValidLastName",
+        validators: [
+          {
+            ...schema,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      });
+    });
+    act(() => {
+      result.current.api.addInput({
+        id: "email",
+        value: "invalid",
+        validators: [
+          {
+            ...schema,
+            when: [validateInputEvents.onBlur, validateInputEvents.onSubmit]
+          }
+        ]
+      });
+    });
+    act(() => {
+      result.current.getFormProps().onSubmit({ preventDefault: noop });
+    });
+    await waitForNextUpdate();
+    act(() => jest.runAllTimers());
+    await waitForNextUpdate();
+
+    expect(result.current.uiState).toEqual({
+      isSubmitting: false,
+      isValid: false,
+      isValidating: false
+    });
+    expect(result.current.formValidity).toEqual({
+      email: { errors: ["INVALID_SCHEMA"], field: "email", valid: false },
+      firstName: {
+        errors: ["INVALID_SCHEMA"],
+        field: "firstName",
+        valid: false
+      },
+      lastName: { field: "lastName", valid: true }
     });
   });
 
@@ -648,44 +727,43 @@ describe("useForm input validation tests", () => {
   });
 
   it("should validate input when evaluateCondition.rewardEarlyValidateLate is set and input current state is not valid", async () => {
-    // const { result, waitForNextUpdate } = renderHook(() =>
-    //   useForm({ id: "test" })
-    // );
-    // act(() => {
-    //   result.current.api.addInput({
-    //     id: "test",
-    //     value: "",
-    //     validators: [
-    //       {
-    //         ...required,
-    //         when: [
-    //           validateInputEvents.onBlur,
-    //           {
-    //             eventType: validateInputEvents.onChange,
-    //             evaluateCondition: evaluateConditions.rewardEarlyValidateLate
-    //           }
-    //         ]
-    //       }
-    //     ]
-    //   });
-    // });
-    // act(() => {
-    //   result.current.inputs.test.getInputProps().onBlur({
-    //     preventDefault: noop,
-    //     target: {
-    //       value: ""
-    //     }
-    //   });
-    // });
-    // await waitForNextUpdate();
-    // console.log("formValidity", result.current.formValidity);
-    // act(async () => {
-    //   await result.current.inputs.test.getInputProps().onChange({
-    //     target: { value: "234" }
-    //   });
-    // });
-    // expect(result.current.formValidity).toEqual({
-    //   test: { errors: ["REQUIRED"], field: "test", valid: false }
-    // });
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useForm({ id: "test" })
+    );
+    act(() => {
+      result.current.api.addInput({
+        id: "test",
+        value: "",
+        validators: [
+          {
+            ...required,
+            when: [
+              validateInputEvents.onBlur,
+              {
+                eventType: validateInputEvents.onChange,
+                evaluateCondition: evaluateConditions.rewardEarlyValidateLate
+              }
+            ]
+          }
+        ]
+      });
+    });
+    act(() => {
+      result.current.inputs.test.getInputProps().onBlur({
+        preventDefault: noop,
+        target: {
+          value: ""
+        }
+      });
+    });
+    await waitForNextUpdate();
+    act(async () => {
+      await result.current.inputs.test.getInputProps().onChange({
+        target: { value: "234" }
+      });
+    });
+    expect(result.current.formValidity).toEqual({
+      test: { errors: ["REQUIRED"], field: "test", valid: false }
+    });
   });
 });

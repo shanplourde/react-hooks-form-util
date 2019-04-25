@@ -6,7 +6,10 @@ export const defaultFormProps = {
   autoComplete: "on"
 };
 
-export const useForm = ({ id, initialState = {} }) => {
+const getSchemaField = (validationSchema, field) =>
+  validationSchema.fields ? validationSchema.fields[field] : null;
+
+export const useForm = ({ id, initialState = {}, validationSchema = {} }) => {
   const inputValues = useRef({
     ...initialState
   });
@@ -34,7 +37,8 @@ export const useForm = ({ id, initialState = {} }) => {
           validators: validators.current[field],
           eventType,
           value: inputs.current[field].value,
-          inputValues: inputValues.current
+          inputValues: inputValues.current,
+          validationSchema: getSchemaField(validationSchema, field)
         })
       );
     });
@@ -162,13 +166,15 @@ export const useForm = ({ id, initialState = {} }) => {
       if (!isCurrentRunLatest()) return;
 
       try {
+        console.log("here i is", validationSchema, id);
         const validationResults = await runValidators({
           field: id,
           validators: validators.current[id],
           eventType: eventType,
           value,
           runId: timeStamp,
-          inputValues: inputValues.current
+          inputValues: inputValues.current,
+          validationSchema: getSchemaField(validationSchema, id)
         });
 
         if (!isCurrentRunLatest()) return;

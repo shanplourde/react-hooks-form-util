@@ -5,8 +5,9 @@ import {
   validateInputEvents,
   evaluateConditions
 } from "./validators";
+import { object, string, mixed } from "yup";
 
-const { email, required, mustBeTrue } = validators;
+const { email, required, mustBeTrue, schema } = validators;
 
 describe("Email validator tests", () => {
   const testCases = [
@@ -99,6 +100,84 @@ describe("Required validator tests", () => {
   testCases.forEach(testCase => {
     it(`Should pass for case ${testCase.input}`, async () => {
       const result = await required.validate({ value: testCase.input });
+      expect(result).toEqual(testCase.expectedValue);
+    });
+  });
+});
+
+describe("Schema validator tests", () => {
+  const testCases = [
+    {
+      input: { firstName: 2, lastName: "10" },
+      schema: object()
+        .shape({
+          firstName: string()
+            .required()
+            .length(5),
+          lastName: string()
+            .required()
+            .length(10),
+          email: string().email()
+        })
+        .nullable(true),
+      expectedValue: {
+        error: "INVALID_SCHEMA",
+        valid: false
+      }
+    }
+  ];
+
+  testCases.forEach(testCase => {
+    it(`Validating entire schema finds first error only even if there are multiple errors ${
+      testCase.input
+    }`, async () => {
+      const result = await schema.validate({
+        value: testCase.input,
+        validationSchema: testCase.schema
+      });
+      expect(result).toEqual(testCase.expectedValue);
+    });
+  });
+
+  const cases2 = [
+    {
+      input: { firstName: 2 },
+      schema: object().shape({
+        firstName: string()
+          .required()
+          .length(5)
+      }),
+      expectedValue: {
+        error: "INVALID_SCHEMA",
+        valid: false
+      }
+    },
+    {
+      input: { firstName: "2" },
+      schema: object().shape({
+        firstName: string().required()
+      }),
+      expectedValue: {
+        valid: true
+      }
+    },
+    {
+      input: { firstName: null },
+      schema: object().shape({
+        firstName: string().nullable()
+      }),
+      expectedValue: {
+        valid: true
+      }
+    }
+  ];
+
+  cases2.forEach(testCase => {
+    it(`Validating individual schema fields ${testCase.input}`, async () => {
+      const result = await schema.validate({
+        value: testCase.input,
+        validationSchema: testCase.schema
+      });
       expect(result).toEqual(testCase.expectedValue);
     });
   });

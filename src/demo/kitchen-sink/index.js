@@ -1,6 +1,7 @@
 import React from "react";
 import { DatePicker } from "./date-picker";
 import { useForm } from "../../components/form/use-form";
+import { object, string } from "yup";
 import {
   validators,
   createValidator,
@@ -9,10 +10,35 @@ import {
 } from "../../components/form/validators";
 import { sleep } from "../utils/async";
 
-const { required, email, mustBeTrue } = validators;
+const { required, mustBeTrue, schema } = validators;
 const { onBlur, onSubmit, onChange } = validateInputEvents;
 
 function KitchenSink(props) {
+  const initialState = {
+    firstName: "",
+    lastName: "OfTheJungle",
+    age: null,
+    email: "george@thejungle.com",
+    confirmEmail: "george@thejungle.com",
+    custom: "custom",
+    agreeToTerms: false,
+    comments: "",
+    favouriteFlavour: "",
+    favouriteColours: ["red", "green"],
+    cookiesPerDay: null,
+    preferredDate: null
+  };
+
+  const contactSchema = object({
+    firstName: string()
+      .required()
+      .min(3),
+    lastName: string()
+      .required()
+      .length(10),
+    email: string().email()
+  });
+
   const {
     getFormProps,
     inputValues,
@@ -22,26 +48,16 @@ function KitchenSink(props) {
     inputUiState
   } = useForm({
     id: "kitchenSinkForm",
-    initialState: {
-      firstName: "",
-      lastName: "OfTheJungle",
-      email: "george@thejungle.com",
-      confirmEmail: "george@thejungle.com",
-      custom: "custom",
-      agreeToTerms: false,
-      comments: "",
-      favouriteFlavour: "",
-      favouriteColours: ["red", "green"],
-      cookiesPerDay: null,
-      preferredDate: null
-    }
+    initialState,
+    validationSchema: contactSchema
   });
+
   const firstNameInput = api.addInput({
     id: "firstName",
     value: inputValues.firstName,
     validators: [
       {
-        ...required,
+        ...schema,
         when: [
           {
             eventType: onChange,
@@ -54,25 +70,21 @@ function KitchenSink(props) {
     ]
   });
 
-  // (whenItem.checkWhenValid ||
-  //   (!whenItem.checkWhenValid &&
-  //     (typeof formValidity[id] === "undefined" ||
-  //       formValidity[id].valid !== true))))
-
   const lastNameInput = api.addInput({
     id: "lastName",
     value: inputValues.lastName,
-    validators: [{ ...required, when: [onBlur, onSubmit] }]
+    validators: [{ ...schema, when: [onBlur, onSubmit] }]
   });
+
   const emailInput = api.addInput({
     id: "email",
     value: inputValues.email,
     validators: [
-      { ...required, when: [onBlur, onSubmit] },
-      {
-        ...email,
-        when: [onBlur, onSubmit]
-      }
+      { ...schema, when: [onBlur, onSubmit] }
+      // {
+      //   ...email,
+      //   when: [onBlur, onSubmit]
+      // }
     ]
   });
   const confirmEmailValidator = createValidator({

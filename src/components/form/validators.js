@@ -13,7 +13,8 @@ export const runValidators = async ({
   validators,
   eventType,
   value,
-  inputValues
+  inputValues,
+  validationSchema
 }) => {
   const validationResults = [];
   let isValid = true;
@@ -27,7 +28,11 @@ export const runValidators = async ({
   for (let i = 0; i < filteredValidators.length; i++) {
     const validator = filteredValidators[i];
     if (isValid) {
-      const validationResult = await validator.validate({ value, inputValues });
+      const validationResult = await validator.validate({
+        value,
+        inputValues,
+        validationSchema
+      });
       if (!validationResult.valid && !validationResult.undeterminedValidation)
         isValid = false;
       validationResults.push(validationResult);
@@ -66,15 +71,19 @@ export const runValidators = async ({
 /**
  * Returns a new validator definition
  * @param {*} validateFn - validation function. Receives
- *        value
+ *        ({ value, inputValues, validationSchema })
  * @param {*} error - Error constant if validation fails
  *            Readable copy would be provided by application
  */
 export const createValidator = ({ validateFn, error = "ERROR_KEY" }) => {
   return {
-    validate: async ({ value, inputValues }) => {
+    validate: async ({ value, inputValues, validationSchema }) => {
       try {
-        const isValid = await validateFn({ value, inputValues });
+        const isValid = await validateFn({
+          value,
+          inputValues,
+          validationSchema
+        });
         if (typeof isValid === "boolean" && isValid) {
           return { valid: true };
         }
@@ -104,7 +113,7 @@ validators.required = createValidator({
 });
 
 /**
- * Useful for checkboxes that must be checked
+ * Useful for validating stuff like checkboxes
  */
 validators.mustBeTrue = createValidator({
   validateFn: ({ value, inputValues }) =>
@@ -121,6 +130,22 @@ validators.email = createValidator({
     return !value || re.test(String(value).toLowerCase());
   },
   error: "INVALID_EMAIL"
+});
+
+/**
+ * A schema validator if using yup-based schema validation
+ */
+validators.schema = createValidator({
+  validateFn: async ({ value, validationSchema }) => {
+    if (!validationSchema || !validationSchema.validate) return true;
+    try {
+      await validationSchema.validate(value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+  error: "INVALID_SCHEMA"
 });
 
 const evaluateConditions = {};

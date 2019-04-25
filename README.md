@@ -1,6 +1,6 @@
 # react-hooks-form-util
 
-[![Build Status](https://travis-ci.com/shanplourde/react-hooks-form-util.svg?branch=master)](https://travis-ci.com/shanplourde/react-hooks-form-util) [![codecov](https://codecov.io/gh/shanplourde/react-hooks-form-util/branch/master/graph/badge.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util) [![dependencies](https://david-dm.org/shanplourde/react-hooks-form-util.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util) [![devDependencies](https://david-dm.org/shanplourde/react-hooks-form-util/dev-status.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util)
+[![Build Status](https://travis-ci.com/shanplourde/react-hooks-form-util.svg?branch=master)](https://travis-ci.com/shanplourde/react-hooks-form-util) [![codecov](https://codecov.io/gh/shanplourde/react-hooks-form-util/branch/master/graph/badge.svg)](https://codecov.io/gh/shanplourde/react-hooks-form-util) [![dependencies](https://david-dm.org/shanplourde/react-hooks-form-util.svg)](https://david-dm.org/shanplourde/react-hooks-form-util) [![devDependencies](https://david-dm.org/shanplourde/react-hooks-form-util/dev-status.svg)](https://david-dm.org/shanplourde/react-hooks-form-util?type=dev)
 
 `react-hooks-form-util` is a simple to use forms API based on React hooks. It only provides the functional aspects of forms. It's up to you to develop your UI as you see fit, and simply integrate your UI with the hooks.
 
@@ -23,6 +23,7 @@ This library supports the following:
   - Multi-selects
 - Supports custom components
 - Supports custom validations
+- Supports [yup-based](https://github.com/jquense/yup) schema validations
 - Inputs support pristine and visited state
 - Dynamically add or remove form fields
   to/from existing forms
@@ -150,7 +151,7 @@ api.removeInput("firstName");
 
 - Pass a `validators` array to `api.addInput`
 - See `validators.js` for out of the box validations
-  (currently `required`, `email`, `mustBeTrue`)
+  (currently `required`, `email`, `mustBeTrue`, `schema`)
 - For each validator, specify the `when` array, which
   indicates when validators fire. Validators
   can be fired `onBlur`, `onSubmit`, and `onChange`
@@ -291,6 +292,56 @@ const customValidator = createValidator({
       }, 5000);
     }),
   error: "CUSTOM_ASYNC_ERROR"
+});
+```
+
+## Schema-based validations
+
+- Schema validations are supported with the [yup schema
+  validation library](https://github.com/jquense/yup)
+- Schema validations are configured at the field level,
+  meaning that you have fine-grained control over when schema validations run (
+  i.e. onBlur, onSubmit, or using the reward early validate late pattern)
+- Checkout the code below. `mySchema` is our schema definition. We pass this
+  to `useForm`, and then use the predefined `schema` validator. In
+  addition, we get to specify the `when` property for our schema validations
+
+```javascript
+import { object, string } from "yup";
+const { schema } = validators;
+
+const mySchema = object({
+  firstName: string()
+    .required()
+    .min(3),
+  lastName: string()
+    .required()
+    .length(10),
+  email: string().email()
+});
+
+const { api } = useForm({
+  id: "kitchenSinkForm",
+  initialState,
+  validationSchema: contactSchema
+});
+
+const firstNameInput = api.addInput({
+  id: "firstName",
+  value: inputValues.firstName,
+  validators: [
+    {
+      ...schema,
+      when: [
+        {
+          eventType: onChange,
+          evaluateCondition: evaluateConditions.rewardEarlyValidateLate
+        },
+        onBlur,
+        onSubmit
+      ]
+    }
+  ]
 });
 ```
 

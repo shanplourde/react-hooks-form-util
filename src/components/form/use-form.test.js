@@ -66,7 +66,7 @@ describe("useForm hook tests", () => {
     expect(formProps.onSubmit).toBeDefined();
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(() => formProps.onSubmit({ preventDefault: noop }));
+    await act(() => formProps.onSubmit({ preventDefault: noop }));
     await waitForNextUpdate();
     await waitForNextUpdate();
     expect(onSubmit).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe("useForm hook tests", () => {
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(() => formProps.onSubmit({ preventDefault: noop }));
+    await act(() => formProps.onSubmit({ preventDefault: noop }));
     await act(async () => await waitForNextUpdate());
     expect(result.current.uiState).toEqual({
       isSubmitting: true,
@@ -118,7 +118,7 @@ describe("useForm hook tests", () => {
 
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(() => {
+    await act(() => {
       formProps.onSubmit({ preventDefault: noop });
     });
     expect(uiState).toEqual({
@@ -140,7 +140,7 @@ describe("useForm hook tests", () => {
       });
     // Could be some weirdness right now due to
     // https://github.com/facebook/react/issues/14769
-    act(() => {
+    await act(() => {
       result.current
         .getFormProps({ onSubmit })
         .onSubmit({ preventDefault: noop });
@@ -428,7 +428,7 @@ describe("useForm input validation tests", () => {
         ]
       });
     });
-    act(() => {
+    await act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
@@ -502,7 +502,7 @@ describe("useForm input validation tests", () => {
         ]
       });
     });
-    act(() => {
+    await act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
@@ -554,7 +554,7 @@ describe("useForm input validation tests", () => {
         ]
       });
     });
-    act(() => {
+    await act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     await waitForNextUpdate();
@@ -584,7 +584,7 @@ describe("useForm input validation tests", () => {
         validators: [{ ...required, when: [validateInputEvents.onBlur] }]
       });
     });
-    act(() => {
+    await act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     act(() => jest.runAllTimers());
@@ -637,7 +637,7 @@ describe("useForm input validation tests", () => {
         ]
       });
     });
-    act(() => {
+    await act(() => {
       result.current.getFormProps().onSubmit({ preventDefault: noop });
     });
     // await waitForNextUpdate();

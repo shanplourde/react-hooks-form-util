@@ -13,7 +13,8 @@
     "react-dom": "^16.9.0-alpha.0",
     "react-router-dom": "4.3.1",
     "react-scripts": "2.1.8",
-    "yup": "^0.27.0"
+    "yup": "^0.27.0",
+    "snyk": "^1.316.1"
   },
   "devDependencies": {
     "codecov": "^3.3.0",
@@ -25,7 +26,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom --verbose --no-watch --coverage",
     "test:watch": "react-scripts test --env=jsdom --watch --verbose",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "browserslist": [
     ">0.2%",
@@ -47,5 +50,6 @@
     "collectCoverageFrom": [
       "src/components/form/**"
     ]
-  }
+  },
+  "snyk": true
 }
